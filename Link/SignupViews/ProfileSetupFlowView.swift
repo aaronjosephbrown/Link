@@ -15,7 +15,7 @@ struct ProfileSetupFlowView: View {
         .onAppear {
             initializeStep()
         }
-        .onChange(of: appViewModel.getCurrentProgress()) { newProgress in
+        .onChange(of: appViewModel.getCurrentProgress()) { _ , newProgress in
             currentStep = stepForProgress(newProgress)
         }
     }

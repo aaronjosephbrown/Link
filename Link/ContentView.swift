@@ -40,7 +40,7 @@ struct ContentView: View {
         }
         .onAppear {
             // Check for existing auth session
-            if let user = Auth.auth().currentUser {
+            if Auth.auth().currentUser != nil {
                 isAuthenticated = true
                 checkSetupProgress()
             } else {
