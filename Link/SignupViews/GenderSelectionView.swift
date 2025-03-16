@@ -33,7 +33,7 @@ struct GenderSelectionView: View {
                 .font(.subheadline)
                 .foregroundColor(.gray)
             
-            SignupProgressView(currentStep: 3, totalSteps: 17)
+            SignupProgressView(currentStep: currentStep, totalSteps: 17)
                 .padding(.vertical, 20)
             
             ScrollView {

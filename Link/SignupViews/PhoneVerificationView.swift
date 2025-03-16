@@ -40,7 +40,7 @@ struct PhoneVerificationView: View {
             .padding(.top, 40)
             
             // Progress indicator
-            SignupProgressView(currentStep: 0, totalSteps: 17)
+//            SignupProgressView(currentStep: 0, totalSteps: 17)
             
             // Phone number field
             VStack(alignment: .leading, spacing: 8) {
@@ -49,7 +49,7 @@ struct PhoneVerificationView: View {
                     .foregroundColor(.secondary)
                 
                 HStack {
-                    Text("+1")
+                    Image(systemName: "phone")
                         .foregroundColor(.secondary)
                         .padding(.leading, 16)
                     
@@ -92,10 +92,6 @@ struct PhoneVerificationView: View {
                     }
                     .disabled(phoneNumber.count < 10 || isLoading)
                 }
-                
-                Text("Step 1 of 17 in setting up your profile")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
             }
             .padding(.horizontal)
             .padding(.bottom, 32)

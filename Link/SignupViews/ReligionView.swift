@@ -124,6 +124,7 @@ struct ReligionView: View {
             withAnimation {
                 appViewModel.updateProgress(.religionComplete)
                 currentStep = 12
+                navigateToPolitics = true
             }
         }
     }

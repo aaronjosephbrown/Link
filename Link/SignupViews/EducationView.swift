@@ -10,6 +10,7 @@ struct EducationView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var navigateToReligion = false
     
     private let db = Firestore.firestore()
     
@@ -88,6 +89,9 @@ struct EducationView: View {
         } message: {
             Text(errorMessage)
         }
+        .navigationDestination(isPresented: $navigateToReligion) {
+            ReligionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+        }
     }
     
     private func saveAndContinue() {
@@ -117,6 +121,7 @@ struct EducationView: View {
             withAnimation {
                 appViewModel.updateProgress(.educationComplete)
                 currentStep = 11
+                navigateToReligion = true
             }
         }
     }

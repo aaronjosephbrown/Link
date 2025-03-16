@@ -38,7 +38,7 @@ struct EmailCollectionView: View {
             .padding(.top, 40)
             
             // Progress indicator
-            SignupProgressView(currentStep: 1, totalSteps: 17)
+            SignupProgressView(currentStep: currentStep, totalSteps: 17)
             
             // Form fields
             VStack(spacing: 20) {

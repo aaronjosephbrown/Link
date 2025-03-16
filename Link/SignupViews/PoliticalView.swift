@@ -121,6 +121,7 @@ struct PoliticalView: View {
             withAnimation {
                 appViewModel.updateProgress(.politicsComplete)
                 currentStep = 16
+                navigateToDrinking = true
             }
         }
     }

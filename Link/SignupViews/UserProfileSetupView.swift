@@ -36,7 +36,7 @@ struct UserProfileSetupView: View {
             .padding(.top, 40)
             
             // Progress indicator
-            SignupProgressView(currentStep: 0, totalSteps: 17)
+            SignupProgressView(currentStep: currentStep, totalSteps: 17)
             
             // Form fields
             VStack(spacing: 20) {
@@ -106,7 +106,7 @@ struct UserProfileSetupView: View {
                     .disabled(!formIsValid)
                 }
                 
-                Text("This is step 1 of 5 in setting up your profile")
+                Text("This is step 1 of 17 in setting up your profile")
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }

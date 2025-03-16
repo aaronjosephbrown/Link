@@ -33,7 +33,7 @@ struct DOBVerificationView: View {
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
             
-            SignupProgressView(currentStep: 2, totalSteps: 17)
+            SignupProgressView(currentStep: currentStep, totalSteps: 17)
                 .padding(.vertical, 20)
             
             Text("Date of Birth")
