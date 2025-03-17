@@ -60,7 +60,7 @@ struct PhoneVerificationView: View {
                             .keyboardType(.phonePad)
                             .textContentType(.telephoneNumber)
                             .font(.custom("Lora-Regular", size: 18))
-                            .foregroundColor(.accent)
+                            .foregroundColor(Color("AccentColor"))
                     }
                     .padding()
                     .background(
@@ -151,31 +151,36 @@ struct VerificationCodeView: View {
     @State private var isCodeFocused = false
     
     var body: some View {
-        NavigationView {
+        BackgroundView {
             VStack(spacing: 24) {
                 // Header
                 VStack(spacing: 8) {
                     Image(systemName: "message.circle.fill")
                         .font(.system(size: 60))
-                        .foregroundColor(.blue)
+                        .foregroundColor(Color("Gold"))
                         .padding(.bottom, 8)
                     
                     Text("Enter Verification Code")
                         .font(.custom("Lora-Regular", size: 28))
                         .padding(.top)
+                        .foregroundColor(.accent)
                     
-                    Text("We've sent a 6-digit code to\n\(phoneNumber)")
-                        .font(.custom("Lora-Regular", size: 17))
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
+                    VStack(spacing: 4) {
+                        Text("We've sent a 6-digit code to\n\(phoneNumber)")
+                            .font(.custom("Lora-Regular", size: 15))
+                            .foregroundColor(.accent)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                    }
+                    .frame(height: 40)
                 }
                 .padding(.top, 40)
                 
                 // Code field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("VERIFICATION CODE")
-                        .font(.custom("Lora-Regular", size: 12))
-                        .foregroundColor(.secondary)
+                        .font(.custom("Lora-Regular", size: 19))
+                        .foregroundColor(.accent)
                     
                     TextField("", text: $verificationCode)
                         .textFieldStyle(PlainTextFieldStyle())
@@ -185,8 +190,7 @@ struct VerificationCodeView: View {
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(isCodeFocused ? Color.blue : Color.gray.opacity(0.3), lineWidth: 1)
-                                .background(Color(.systemBackground))
+                                .stroke(isCodeFocused ? Color("Gold").opacity(0.3) : Color("Gold"), lineWidth: 2)
                         )
                         .onTapGesture { isCodeFocused = true }
                         .onSubmit { isCodeFocused = false }
@@ -196,8 +200,8 @@ struct VerificationCodeView: View {
                 
                 Button(action: resendCode) {
                     Text("Resend Code")
-                        .foregroundColor(.blue)
-                        .font(.custom("Lora-Regular", size: 15))
+                        .foregroundColor(.accent)
+                        .font(.custom("Lora-Regular", size: 17))
                 }
                 .padding(.top)
                 .disabled(isLoading)
@@ -218,22 +222,17 @@ struct VerificationCodeView: View {
                                 .padding(.vertical, 16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 16)
-                                        .fill(verificationCode.count == 6 ? Color.blue : Color.gray.opacity(0.3))
+                                        .fill(verificationCode.count == 6 ? Color("Gold") : Color.gray.opacity(0.3))
                                 )
                                 .animation(.easeInOut(duration: 0.2), value: verificationCode.count == 6)
                         }
                         .disabled(verificationCode.count != 6 || isLoading)
                     }
-                    
-                    Text("Step 1 of 17 in setting up your profile")
-                        .font(.custom("Lora-Regular", size: 13))
-                        .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
             .padding()
-            .background(Color(.systemBackground))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -250,7 +249,7 @@ struct VerificationCodeView: View {
             }
         }
     }
-    
+        
     private func verifyCode() {
         isLoading = true
         let credential = PhoneAuthProvider.provider().credential(

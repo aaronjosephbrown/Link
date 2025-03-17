@@ -18,117 +18,114 @@ struct EmailCollectionView: View {
     private let db = Firestore.firestore()
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: "envelope.circle.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
-                    .padding(.bottom, 8)
+        BackgroundView {
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "envelope.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(Color("Gold"))
+                        .padding(.bottom, 8)
+                    
+                    Text("Email Verification")
+                        .font(.custom("Lora-Regular", size: 19))
+                        .foregroundColor(.accent)
+                    
+                    Text(showVerificationField ? "Enter the verification code sent to your email" : "Please verify your email to continue")
+                        .font(.custom("Lora-Regular", size: 19))
+                        .foregroundColor(Color.accent)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 40)
                 
-                Text("Email Verification")
-                    .font(.system(size: 28, weight: .bold))
-                    .padding(.top)
+                // Progress indicator
+                SignupProgressView(currentStep: currentStep, totalSteps: 17)
                 
-                Text(showVerificationField ? "Enter the verification code sent to your email" : "Please verify your email to continue")
-                    .font(.system(size: 17))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, 40)
-            
-            // Progress indicator
-            SignupProgressView(currentStep: currentStep, totalSteps: 17)
-            
-            // Form fields
-            VStack(spacing: 20) {
-                if !showVerificationField {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("EMAIL ADDRESS")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-                        
-                        TextField("", text: $email)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .keyboardType(.emailAddress)
-                            .textContentType(.emailAddress)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(isEmailFocused ? Color.blue : Color.gray.opacity(0.3), lineWidth: 1)
-                                    .background(Color(.systemBackground))
-                            )
-                            .onTapGesture { isEmailFocused = true }
-                            .onSubmit { isEmailFocused = false }
-                    }
-                } else {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("VERIFICATION CODE")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-                        
-                        TextField("", text: $verificationCode)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.center)
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(isCodeFocused ? Color.blue : Color.gray.opacity(0.3), lineWidth: 1)
-                                    .background(Color(.systemBackground))
-                            )
-                            .onTapGesture { isCodeFocused = true }
-                            .onSubmit { isCodeFocused = false }
-                            .onChange(of: verificationCode) { _, newValue in
-                                if newValue.count > 6 {
-                                    verificationCode = String(newValue.prefix(6))
+                // Form fields
+                VStack(spacing: 20) {
+                    if !showVerificationField {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("EMAIL ADDRESS")
+                                .font(.custom("Lora-Regular", size: 19))
+                                .foregroundColor(Color.accent)
+                            
+                            TextField("", text: $email)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .keyboardType(.emailAddress)
+                                .textContentType(.emailAddress)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                                .padding()
+                                .foregroundColor(Color("AccentColor"))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(isEmailFocused ? Color("Gold").opacity(0.3) : Color("Gold"), lineWidth: 2)
+                                )
+                                .onTapGesture { isEmailFocused = true }
+                                .onSubmit { isEmailFocused = false }
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("VERIFICATION CODE")
+                                .font(.custom("Lora-Regular", size: 19))
+                                .foregroundColor(Color.accent)
+                            
+                            TextField("", text: $verificationCode)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                                .foregroundColor(Color("AccentColor"))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(isCodeFocused ? Color("Gold").opacity(0.3) : Color("Gold"), lineWidth: 2)
+                                )
+                                .onTapGesture { isCodeFocused = true }
+                                .onSubmit { isCodeFocused = false }
+                                .onChange(of: verificationCode) { _, newValue in
+                                    if newValue.count > 6 {
+                                        verificationCode = String(newValue.prefix(6))
+                                    }
                                 }
-                            }
+                        }
                     }
                 }
-            }
-            .padding(.horizontal)
-            .padding(.top, 20)
-            
-            Spacer()
-            
-            // Continue button
-            VStack(spacing: 16) {
-                if isLoading {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                } else {
-                    Button(action: showVerificationField ? verifyCode : sendVerificationCode) {
-                        Text(showVerificationField ? "Verify" : "Send Code")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(formIsValid ? Color.blue : Color.gray.opacity(0.3))
-                            )
-                            .animation(.easeInOut(duration: 0.2), value: formIsValid)
-                    }
-                    .disabled(!formIsValid)
-                }
+                .padding(.horizontal)
+                .padding(.top, 20)
                 
-                Text("Step 2 of 17 in setting up your profile")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                Spacer()
+                
+                // Continue button
+                VStack(spacing: 16) {
+                    if isLoading {
+                        ProgressView()
+                            .scaleEffect(1.2)
+                    } else {
+                        Button(action: showVerificationField ? verifyCode : sendVerificationCode) {
+                            Text(showVerificationField ? "Verify" : "Send Code")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(formIsValid ? Color("Gold") : Color.gray.opacity(0.3))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: formIsValid)
+                        }
+                        .disabled(!formIsValid)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
+            .padding()
+            .navigationBarBackButtonHidden(true)
+            .alert("Error", isPresented: $showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
     

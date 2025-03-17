@@ -17,112 +17,108 @@ struct UserProfileSetupView: View {
     private let db = Firestore.firestore()
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
-                    .padding(.bottom, 8)
-                
-                Text("Welcome to Link")
-                    .font(.system(size: 28, weight: .bold))
-                    .padding(.top)
-                
-                Text("Let's set up your profile")
-                    .font(.system(size: 17))
-                    .foregroundColor(.secondary)
-            }
-            .padding(.top, 40)
-            
-            // Progress indicator
-            SignupProgressView(currentStep: currentStep, totalSteps: 17)
-            
-            // Form fields
-            VStack(spacing: 20) {
-                // First Name field
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("FIRST NAME")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
-                    TextField("", text: $firstName)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(isFirstNameFocused ? Color.blue : Color.gray.opacity(0.3), lineWidth: 1)
-                                .background(Color(.systemBackground))
-                        )
-                        .autocapitalization(.words)
-                        .disableAutocorrection(true)
-                        .onTapGesture { isFirstNameFocused = true }
-                        .onSubmit { isFirstNameFocused = false }
-                }
-                
-                // Last Name field
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("LAST NAME")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
-                    TextField("", text: $lastName)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(isLastNameFocused ? Color.blue : Color.gray.opacity(0.3), lineWidth: 1)
-                                .background(Color(.systemBackground))
-                        )
-                        .autocapitalization(.words)
-                        .disableAutocorrection(true)
-                        .onTapGesture { isLastNameFocused = true }
-                        .onSubmit { isLastNameFocused = false }
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top, 20)
-            
-            Spacer()
-            
-            // Continue button
-            VStack(spacing: 16) {
-                if isLoading {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                } else {
-                    Button(action: saveNameAndContinue) {
-                        Text("Continue")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(formIsValid ? Color.blue : Color.gray.opacity(0.3))
-                            )
-                            .animation(.easeInOut(duration: 0.2), value: formIsValid)
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .padding(.bottom, 8)
+                        
+                        Text("Let's set up your profile")
+                            .font(.custom("Lora-Regular", size: 19))
+                            .foregroundColor(Color.accent)
                     }
-                    .disabled(!formIsValid)
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Form fields
+                    VStack(spacing: 20) {
+                        // First Name field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("FIRST NAME")
+                                .font(.custom("Lora-Regular", size: 17))
+                                .foregroundColor(Color.accent)
+                            
+                            TextField("", text: $firstName)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .font(.custom("Lora-Regular", size: 17))
+                                .foregroundColor(Color("AccentColor"))
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(isFirstNameFocused ? Color("Gold").opacity(0.3) : Color("Gold"), lineWidth: 2)
+                                )
+                                .autocapitalization(.words)
+                                .disableAutocorrection(true)
+                                .onTapGesture { isFirstNameFocused = true }
+                                .onSubmit { isFirstNameFocused = false }
+                        }
+                        
+                        // Last Name field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("LAST NAME")
+                                .foregroundColor(Color.accent)
+                            
+                            TextField("", text: $lastName)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .padding()
+                                .foregroundColor(Color("AccentColor"))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(isLastNameFocused ? Color("Gold").opacity(0.3) : Color("Gold"), lineWidth: 2)
+                                    
+                                )
+                                .autocapitalization(.words)
+                                .disableAutocorrection(true)
+                                .onTapGesture { isLastNameFocused = true }
+                                .onSubmit { isLastNameFocused = false }
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 20)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveNameAndContinue) {
+                                Text("Continue")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(formIsValid ? Color("Gold") : Color.gray.opacity(0.3))
+                                    )
+                                    .animation(.easeInOut(duration: 0.2), value: formIsValid)
+                            }
+                            .disabled(!formIsValid)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                
-                Text("This is step 1 of 17 in setting up your profile")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
+                }
+                .onAppear {
+                    checkExistingProfile()
+                }
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-        .onAppear {
-            checkExistingProfile()
         }
     }
     

@@ -148,6 +148,7 @@ struct SmokingHabitsView: View {
             withAnimation {
                 appViewModel.updateProgress(.smokingComplete)
                 currentStep = 15
+                navigateToDrugs = true
             }
         }
     }
