@@ -20,95 +20,99 @@ struct PhoneVerificationView: View {
     @Binding var isAuthenticated: Bool
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: "phone.circle.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
-                    .padding(.bottom, 8)
-                
-                Text("Welcome to Link")
-                    .font(.system(size: 28, weight: .bold))
-                    .padding(.top)
-                
-                Text("Enter your phone number to get started")
-                    .font(.system(size: 17))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, 40)
-            
-            // Progress indicator
-//            SignupProgressView(currentStep: 0, totalSteps: 17)
-            
-            // Phone number field
-            VStack(alignment: .leading, spacing: 8) {
-                Text("PHONE NUMBER")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
-                
-                HStack {
-                    Image(systemName: "phone")
-                        .foregroundColor(.secondary)
-                        .padding(.leading, 16)
+        BackgroundView {
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "heart.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(Color("Gold")) // #FFD700
+                        .padding(.bottom, 8)
                     
-                    TextField("", text: $phoneNumber)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .keyboardType(.phonePad)
-                        .textContentType(.telephoneNumber)
+                    Text("Lumé")
+                        .font(.custom("GreatVibes-Regular", size: 50))
+                        .foregroundColor(.accent)
+                        .padding(.top)
+                    
+                    Text("Enter your phone number to get started")
+                        .font(.custom("Lora-Regular", size: 19))
+                        .foregroundColor(.accent)
+                        .multilineTextAlignment(.center)
                 }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isPhoneNumberFocused ? Color.blue : Color.gray.opacity(0.3), lineWidth: 1)
-                        .background(Color(.systemBackground))
-                )
-                .onTapGesture { isPhoneNumberFocused = true }
-                .onSubmit { isPhoneNumberFocused = false }
-            }
-            .padding(.horizontal)
-            .padding(.top, 20)
-            
-            Spacer()
-            
-            // Continue button
-            VStack(spacing: 16) {
-                if isLoading {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                } else {
-                    Button(action: sendVerificationCode) {
-                        Text("Continue")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(phoneNumber.count >= 10 ? Color.blue : Color.gray.opacity(0.3))
-                            )
-                            .animation(.easeInOut(duration: 0.2), value: phoneNumber.count >= 10)
+                .padding(.top, 40)
+                
+                // Progress indicator
+                //            SignupProgressView(currentStep: 0, totalSteps: 17)
+                
+                // Phone number field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("PHONE NUMBER")
+                        .font(.custom("Lora-Regular", size: 16))
+                        .foregroundColor(.accent)
+                    
+                    HStack {
+                        Image(systemName: "phone")
+                            .foregroundColor(.accent)
+                            .padding(.leading, 16)
+                        
+                        TextField("", text: $phoneNumber)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .keyboardType(.phonePad)
+                            .textContentType(.telephoneNumber)
+                            .font(.custom("Lora-Regular", size: 18))
+                            .foregroundColor(.accent)
                     }
-                    .disabled(phoneNumber.count < 10 || isLoading)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isPhoneNumberFocused ? Color("Gold").opacity(0.3) : Color("Gold"), lineWidth: 2)
+                            
+                    )
+                    .onTapGesture { isPhoneNumberFocused = true }
+                    .onSubmit { isPhoneNumberFocused = false }
                 }
+                .padding(.horizontal)
+                .padding(.top, 20)
+                
+                Spacer()
+                
+                // Continue button
+                VStack(spacing: 16) {
+                    if isLoading {
+                        ProgressView()
+                            .scaleEffect(1.2)
+                    } else {
+                        Button(action: sendVerificationCode) {
+                            Text("Continue")
+                                .font(.custom("Lora-Regular", size: 20))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(phoneNumber.count >= 10 ? Color("Gold") : Color.gray.opacity(0.3))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: phoneNumber.count >= 10)
+                        }
+                        .disabled(phoneNumber.count < 10 || isLoading)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $isShowingVerificationCode) {
-            VerificationCodeView(verificationCode: $verificationCode, 
-                               phoneNumber: phoneNumber, 
-                               verificationID: verificationID,
-                               isAuthenticated: $isAuthenticated)
-        }
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $isShowingVerificationCode) {
+                VerificationCodeView(verificationCode: $verificationCode,
+                                     phoneNumber: phoneNumber,
+                                     verificationID: verificationID,
+                                     isAuthenticated: $isAuthenticated)
+            }
+            .alert("Error", isPresented: $showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
     
@@ -118,20 +122,20 @@ struct PhoneVerificationView: View {
         
         PhoneAuthProvider.provider()
             .verifyPhoneNumber(formattedNumber, uiDelegate: nil) { verificationId, error in
-            isLoading = false
-            
-            if let error = error {
-                errorMessage = error.localizedDescription
-                showError = true
-                return
+                isLoading = false
+                
+                if let error = error {
+                    errorMessage = error.localizedDescription
+                    showError = true
+                    return
+                }
+                
+                if let verificationId = verificationId {
+                    self.verificationID = verificationId
+                    UserDefaults.standard.set(verificationId, forKey: "authVerificationID")
+                    isShowingVerificationCode = true
+                }
             }
-            
-            if let verificationId = verificationId {
-                self.verificationID = verificationId
-                UserDefaults.standard.set(verificationId, forKey: "authVerificationID")
-                isShowingVerificationCode = true
-            }
-        }
     }
 }
 
@@ -157,23 +161,20 @@ struct VerificationCodeView: View {
                         .padding(.bottom, 8)
                     
                     Text("Enter Verification Code")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.custom("Lora-Regular", size: 28))
                         .padding(.top)
                     
                     Text("We've sent a 6-digit code to\n\(phoneNumber)")
-                        .font(.system(size: 17))
+                        .font(.custom("Lora-Regular", size: 17))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, 40)
                 
-                // Progress indicator
-                SignupProgressView(currentStep: 0, totalSteps: 17)
-                
                 // Code field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("VERIFICATION CODE")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.custom("Lora-Regular", size: 12))
                         .foregroundColor(.secondary)
                     
                     TextField("", text: $verificationCode)
@@ -196,7 +197,7 @@ struct VerificationCodeView: View {
                 Button(action: resendCode) {
                     Text("Resend Code")
                         .foregroundColor(.blue)
-                        .font(.system(size: 15))
+                        .font(.custom("Lora-Regular", size: 15))
                 }
                 .padding(.top)
                 .disabled(isLoading)
@@ -211,7 +212,7 @@ struct VerificationCodeView: View {
                     } else {
                         Button(action: verifyCode) {
                             Text("Verify")
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.custom("Lora-Regular", size: 17))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
@@ -225,7 +226,7 @@ struct VerificationCodeView: View {
                     }
                     
                     Text("Step 1 of 17 in setting up your profile")
-                        .font(.system(size: 13))
+                        .font(.custom("Lora-Regular", size: 13))
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)

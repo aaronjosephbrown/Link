@@ -33,6 +33,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		122561622D878C7C008123BD /* Fonts */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Fonts;
+			sourceTree = "<group>";
+		};
 		12B78F662D81E88200F281F0 /* Link */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -66,6 +71,7 @@
 		12B78F5B2D81E88200F281F0 = {
 			isa = PBXGroup;
 			children = (
+				122561622D878C7C008123BD /* Fonts */,
 				12B78F662D81E88200F281F0 /* Link */,
 				12B78F652D81E88200F281F0 /* Products */,
 			);
@@ -95,6 +101,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				122561622D878C7C008123BD /* Fonts */,
 				12B78F662D81E88200F281F0 /* Link */,
 			);
 			name = Link;
