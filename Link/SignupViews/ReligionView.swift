@@ -10,7 +10,7 @@ struct ReligionView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToPolitics = false
+    @State private var navigateToEthnicity = false
     
     private let db = Firestore.firestore()
     
@@ -29,71 +29,108 @@ struct ReligionView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Religion")
-                .font(.title)
-                .padding(.top)
-            
-            Text("Select your religion")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            SignupProgressView(currentStep: 11, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(religions, id: \.self) { religion in
-                        Button(action: { selectedReligion = religion }) {
-                            HStack {
-                                Text(religion)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedReligion == religion {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 32) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Image(systemName: "hands.and.sparkles.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .symbolEffect(.bounce, options: .repeating)
+                        
+                        Text("Your Religious Views")
+                            .font(.custom("Lora-Regular", size: 24))
+                            .foregroundColor(Color.accent)
+                        
+                        Text("This helps us find better matches for you")
+                            .font(.custom("Lora-Regular", size: 16))
+                            .foregroundColor(Color.accent.opacity(0.7))
+                    }
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Religion options
+                    VStack(spacing: 16) {
+                        ForEach(religions, id: \.self) { religion in
+                            Button(action: { selectedReligion = religion }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(religion)
+                                            .font(.custom("Lora-Regular", size: 17))
+                                            .foregroundColor(selectedReligion == religion ? .white : Color.accent)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    if selectedReligion == religion {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
                                 }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(selectedReligion == religion ? Color("Gold") : Color("Gold").opacity(0.1))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedReligion == religion ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedReligion == religion ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            )
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                HStack {
+                                    Text("Continue")
+                                        .font(.system(size: 17, weight: .semibold))
+                                    
+                                    if selectedReligion != nil {
+                                        Image(systemName: "arrow.right")
+                                            .font(.system(size: 17, weight: .semibold))
+                                    }
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(selectedReligion != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: selectedReligion)
+                            }
+                            .disabled(selectedReligion == nil)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: saveAndContinue) {
-                    Text("Continue")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(selectedReligion != nil ? Color.blue : Color.gray)
-                        )
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
                 }
-                .disabled(selectedReligion == nil)
-                .padding(.horizontal)
             }
         }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-        .navigationDestination(isPresented: $navigateToPolitics) {
-            PoliticalView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+        .navigationDestination(isPresented: $navigateToEthnicity) {
+            EthnicitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         }
     }
     
@@ -124,15 +161,31 @@ struct ReligionView: View {
             withAnimation {
                 appViewModel.updateProgress(.religionComplete)
                 currentStep = 12
-                navigateToPolitics = true
+                navigateToEthnicity = true
             }
         }
     }
 }
 
 #Preview {
-    NavigationView {
-        ReligionView(isAuthenticated: .constant(true), currentStep: .constant(0))
-            .environmentObject(AppViewModel())
+    NavigationStack {
+        ReligionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(11)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        ReligionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(11)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

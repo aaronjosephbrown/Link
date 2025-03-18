@@ -11,7 +11,6 @@ struct FamilyPlansView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToEducation = false
     
     private let db = Firestore.firestore()
     
@@ -23,75 +22,83 @@ struct FamilyPlansView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Family Plans")
-                .font(.title)
-                .padding(.top)
-            
-            Text(hasChildren ? "Do you want more children?" : "Do you want children in the future?")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            Text("What are your future family plans?")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            SignupProgressView(currentStep: 9, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(familyPlanOptions, id: \.self) { plan in
-                        Button(action: { selectedPlan = plan }) {
-                            HStack {
-                                Text(plan)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedPlan == plan {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Image(systemName: "house.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .padding(.bottom, 8)
+                            .symbolEffect(.bounce, options: .repeating)
+                        Text(hasChildren ? "Do you want more children?" : "Do you want children in the future?")
+                            .font(.custom("Lora-Regular", size: 19))
+                            .foregroundColor(Color.accent)
+                    }
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Family plan options
+                    VStack(spacing: 12) {
+                        ForEach(familyPlanOptions, id: \.self) { option in
+                            Button(action: { selectedPlan = option }) {
+                                HStack {
+                                    Text(option)
+                                        .font(.custom("Lora-Regular", size: 17))
+                                        .foregroundColor(Color.accent)
+                                    Spacer()
+                                    if selectedPlan == option {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(Color("Gold"))
+                                    }
                                 }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedPlan == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedPlan == plan ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            )
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                Text("Continue")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(selectedPlan != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                    )
+                                    .animation(.easeInOut(duration: 0.2), value: selectedPlan != nil)
+                            }
+                            .disabled(selectedPlan == nil)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: saveAndContinue) {
-                    Text("Continue")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(selectedPlan != nil ? Color.blue : Color.gray)
-                        )
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
                 }
-                .disabled(selectedPlan == nil)
-                .padding(.horizontal)
             }
-        }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-        .navigationDestination(isPresented: $navigateToEducation) {
-            EducationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         }
     }
     
@@ -122,15 +129,32 @@ struct FamilyPlansView: View {
             withAnimation {
                 appViewModel.updateProgress(.familyPlansComplete)
                 currentStep = 10
-                navigateToEducation = true
             }
         }
     }
 }
 
 #Preview {
-    NavigationView {
-        FamilyPlansView(isAuthenticated: .constant(true), currentStep: .constant(0), hasChildren: false)
-            .environmentObject(AppViewModel())
+    NavigationStack {
+        FamilyPlansView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(9),
+            hasChildren: false
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        FamilyPlansView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(9),
+            hasChildren: false
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

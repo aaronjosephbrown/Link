@@ -91,16 +91,23 @@ struct UserProfileSetupView: View {
                                 .scaleEffect(1.2)
                         } else {
                             Button(action: saveNameAndContinue) {
-                                Text("Continue")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(formIsValid ? Color("Gold") : Color.gray.opacity(0.3))
-                                    )
-                                    .animation(.easeInOut(duration: 0.2), value: formIsValid)
+                                HStack {
+                                    Text("Continue")
+                                        .font(.system(size: 17, weight: .semibold))
+                                    
+                                    if formIsValid {
+                                        Image(systemName: "arrow.right")
+                                            .font(.system(size: 17, weight: .semibold))
+                                    }
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(formIsValid ? Color("Gold") : Color.gray.opacity(0.3))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: formIsValid)
                             }
                             .disabled(!formIsValid)
                         }
@@ -162,10 +169,14 @@ struct UserProfileSetupView: View {
                 currentStep = 15
             case .politicsComplete:
                 currentStep = 16
+            case .drugsComplete:
+                currentStep = 17
+            case .photosComplete:
+                currentStep = 18
             case .complete:
                 isAuthenticated = true
             case .initial:
-                break
+                currentStep = 0
             }
         }
     }

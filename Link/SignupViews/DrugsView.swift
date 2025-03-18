@@ -16,78 +16,113 @@ struct DrugsView: View {
     
     private let drugOptions = [
         "Never",
+        "Rarely",
         "Sometimes",
         "Often",
+        "Everyday",
         "Prefer not to say"
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Drug Use")
-                .font(.title)
-                .padding(.top)
-            
-            Text("Do you use recreational drugs?")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            Text("What's your stance on recreational drugs?")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            SignupProgressView(currentStep: 16, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(drugOptions, id: \.self) { option in
-                        Button(action: { selectedOption = option }) {
-                            HStack {
-                                Text(option)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedOption == option {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 32) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Image(systemName: "pills.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .symbolEffect(.bounce, options: .repeating)
+                        
+                        Text("Drug Use")
+                            .font(.custom("Lora-Regular", size: 24))
+                            .foregroundColor(Color.accent)
+                        
+                        Text("This helps us find better matches for you")
+                            .font(.custom("Lora-Regular", size: 16))
+                            .foregroundColor(Color.accent.opacity(0.7))
+                    }
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Options
+                    VStack(spacing: 16) {
+                        ForEach(drugOptions, id: \.self) { option in
+                            Button(action: { selectedOption = option }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(option)
+                                            .font(.custom("Lora-Regular", size: 17))
+                                            .foregroundColor(selectedOption == option ? .white : Color.accent)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    if selectedOption == option {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
                                 }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(selectedOption == option ? Color("Gold") : Color("Gold").opacity(0.1))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedOption == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedOption == option ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            )
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Complete Setup button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                HStack {
+                                    Text("Complete Setup")
+                                        .font(.system(size: 17, weight: .semibold))
+                                    
+                                    if selectedOption != nil {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 17, weight: .semibold))
+                                    }
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(selectedOption != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: selectedOption)
+                            }
+                            .disabled(selectedOption == nil)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: saveAndContinue) {
-                    Text("Complete Setup")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(selectedOption != nil ? Color.blue : Color.gray)
-                        )
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
                 }
-                .disabled(selectedOption == nil)
-                .padding(.horizontal)
             }
-        }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
         }
         .navigationDestination(isPresented: $setupComplete) {
             MainView(isAuthenticated: $isAuthenticated)
@@ -106,7 +141,7 @@ struct DrugsView: View {
         
         let userData: [String: Any] = [
             "drugUse": option,
-            "setupProgress": SignupProgress.complete.rawValue
+            "setupProgress": SignupProgress.drugsComplete.rawValue
         ]
         
         db.collection("users").document(userId).updateData(userData) { error in
@@ -119,7 +154,7 @@ struct DrugsView: View {
             }
             
             withAnimation {
-                appViewModel.updateProgress(.complete)
+                appViewModel.updateProgress(.drugsComplete)
                 currentStep = 17
             }
         }
@@ -127,8 +162,24 @@ struct DrugsView: View {
 }
 
 #Preview {
-    NavigationView {
-        DrugsView(isAuthenticated: .constant(true), currentStep: .constant(0))
-            .environmentObject(AppViewModel())
+    NavigationStack {
+        DrugsView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(16)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        DrugsView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(16)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

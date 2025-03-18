@@ -20,74 +20,110 @@ struct PoliticalView: View {
         "Moderate",
         "Conservative",
         "Very Conservative",
-        "Apolitical",
-        "Other",
+        "Not Political",
         "Prefer not to say"
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("What are your political views?")
-                .font(.title)
-                .padding(.top)
-            
-            Text("Select your political stance")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            SignupProgressView(currentStep: 15, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(politicalOptions, id: \.self) { politics in
-                        Button(action: { selectedPolitics = politics }) {
-                            HStack {
-                                Text(politics)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedPolitics == politics {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 32) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Image(systemName: "building.columns.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .symbolEffect(.bounce, options: .repeating)
+                        
+                        Text("Political Views")
+                            .font(.custom("Lora-Regular", size: 24))
+                            .foregroundColor(Color.accent)
+                        
+                        Text("This helps us find better matches for you")
+                            .font(.custom("Lora-Regular", size: 16))
+                            .foregroundColor(Color.accent.opacity(0.7))
+                    }
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Options
+                    VStack(spacing: 16) {
+                        ForEach(politicalOptions, id: \.self) { politics in
+                            Button(action: { selectedPolitics = politics }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(politics)
+                                            .font(.custom("Lora-Regular", size: 17))
+                                            .foregroundColor(selectedPolitics == politics ? .white : Color.accent)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    if selectedPolitics == politics {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
                                 }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(selectedPolitics == politics ? Color("Gold") : Color("Gold").opacity(0.1))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedPolitics == politics ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedPolitics == politics ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            )
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                HStack {
+                                    Text("Continue")
+                                        .font(.system(size: 17, weight: .semibold))
+                                    
+                                    if selectedPolitics != nil {
+                                        Image(systemName: "arrow.right")
+                                            .font(.system(size: 17, weight: .semibold))
+                                    }
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(selectedPolitics != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: selectedPolitics)
+                            }
+                            .disabled(selectedPolitics == nil)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: saveAndContinue) {
-                    Text("Continue")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(selectedPolitics != nil ? Color.blue : Color.gray)
-                        )
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
                 }
-                .disabled(selectedPolitics == nil)
-                .padding(.horizontal)
             }
-        }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
         }
         .navigationDestination(isPresented: $navigateToDrinking) {
             DrinkingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
@@ -128,8 +164,24 @@ struct PoliticalView: View {
 }
 
 #Preview {
-    NavigationView {
-        PoliticalView(isAuthenticated: .constant(true), currentStep: .constant(0))
-            .environmentObject(AppViewModel())
+    NavigationStack {
+        PoliticalView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(15)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        PoliticalView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(15)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

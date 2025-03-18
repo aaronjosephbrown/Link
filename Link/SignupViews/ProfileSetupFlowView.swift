@@ -63,8 +63,12 @@ struct ProfileSetupFlowView: View {
             return 15
         case .politicsComplete:
             return 16
-        case .complete:
+        case .drugsComplete:
             return 17
+        case .photosComplete:
+            return 18
+        case .complete:
+            return 19
         }
     }
     
@@ -105,8 +109,14 @@ struct ProfileSetupFlowView: View {
             PoliticalView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 16:
             DrugsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+        case 17:
+            ProfilePicturesView(isAuthenticated: $isAuthenticated)
+        case 18:
+            ProgressView("Completing setup...")
+        case 19:
+            MainView(isAuthenticated: $isAuthenticated)
         default:
-            EmptyView()
+            UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         }
     }
-} 
+}

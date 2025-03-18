@@ -33,83 +33,142 @@ struct SmokingHabitsView: View {
     }
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("What are your smoking habits?")
-                .font(.title)
-                .padding(.top)
-            
-            Text("Select your smoking frequency")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            SignupProgressView(currentStep: 14, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(smokingOptions, id: \.self) { habit in
-                        Button(action: { selectedSmokingHabit = habit }) {
-                            HStack {
-                                Text(habit)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedSmokingHabit == habit {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedSmokingHabit == habit ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            )
-                        }
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 32) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Image(systemName: "smoke.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .symbolEffect(.bounce, options: .repeating)
+                        
+                        Text("Your Smoking Habits")
+                            .font(.custom("Lora-Regular", size: 24))
+                            .foregroundColor(Color.accent)
+                        
+                        Text("This helps us find better matches for you")
+                            .font(.custom("Lora-Regular", size: 16))
+                            .foregroundColor(Color.accent.opacity(0.7))
                     }
+                    .padding(.top, 40)
                     
-                    if showsAdditionalQuestions {
-                        VStack(spacing: 16) {
-                            Toggle("Do you use tobacco products?", isOn: $usesTobacco)
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Options
+                    VStack(spacing: 16) {
+                        ForEach(smokingOptions, id: \.self) { habit in
+                            Button(action: { selectedSmokingHabit = habit }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(habit)
+                                            .font(.custom("Lora-Regular", size: 17))
+                                            .foregroundColor(selectedSmokingHabit == habit ? .white : Color.accent)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    if selectedSmokingHabit == habit {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
+                                }
                                 .padding()
-                                .background(Color(.systemGray6))
-                                .cornerRadius(10)
-                            
-                            Toggle("Do you use marijuana?", isOn: $usesWeed)
-                                .padding()
-                                .background(Color(.systemGray6))
-                                .cornerRadius(10)
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(selectedSmokingHabit == habit ? Color("Gold") : Color("Gold").opacity(0.1))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedSmokingHabit == habit ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .padding(.top)
+                        
+                        if showsAdditionalQuestions {
+                            VStack(spacing: 16) {
+                                Toggle(isOn: $usesTobacco) {
+                                    Text("Do you use tobacco products?")
+                                        .font(.custom("Lora-Regular", size: 16))
+                                        .foregroundColor(Color.accent)
+                                }
+                                .tint(Color("Gold"))
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color("Gold").opacity(0.1))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
+                                
+                                Toggle(isOn: $usesWeed) {
+                                    Text("Do you use marijuana?")
+                                        .font(.custom("Lora-Regular", size: 16))
+                                        .foregroundColor(Color.accent)
+                                }
+                                .tint(Color("Gold"))
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color("Gold").opacity(0.1))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
+                            }
+                            .padding(.top)
+                        }
                     }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                HStack {
+                                    Text("Continue")
+                                        .font(.system(size: 17, weight: .semibold))
+                                    
+                                    if selectedSmokingHabit != nil {
+                                        Image(systemName: "arrow.right")
+                                            .font(.system(size: 17, weight: .semibold))
+                                    }
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(selectedSmokingHabit != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: selectedSmokingHabit)
+                            }
+                            .disabled(selectedSmokingHabit == nil)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: saveAndContinue) {
-                    Text("Continue")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(selectedSmokingHabit != nil ? Color.blue : Color.gray)
-                        )
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
                 }
-                .disabled(selectedSmokingHabit == nil)
-                .padding(.horizontal)
             }
-        }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
         }
         .navigationDestination(isPresented: $navigateToDrugs) {
             DrugsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
@@ -155,8 +214,24 @@ struct SmokingHabitsView: View {
 }
 
 #Preview {
-    NavigationView {
-        SmokingHabitsView(isAuthenticated: .constant(true), currentStep: .constant(0))
-            .environmentObject(AppViewModel())
+    NavigationStack {
+        SmokingHabitsView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(14)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        SmokingHabitsView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(14)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

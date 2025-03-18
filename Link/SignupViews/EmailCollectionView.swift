@@ -69,6 +69,7 @@ struct EmailCollectionView: View {
                             Text("VERIFICATION CODE")
                                 .font(.custom("Lora-Regular", size: 19))
                                 .foregroundColor(Color.accent)
+                                .symbolEffect(.bounce, options: .repeating)
                             
                             TextField("", text: $verificationCode)
                                 .textFieldStyle(PlainTextFieldStyle())
@@ -102,16 +103,23 @@ struct EmailCollectionView: View {
                             .scaleEffect(1.2)
                     } else {
                         Button(action: showVerificationField ? verifyCode : sendVerificationCode) {
-                            Text(showVerificationField ? "Verify" : "Send Code")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(formIsValid ? Color("Gold") : Color.gray.opacity(0.3))
-                                )
-                                .animation(.easeInOut(duration: 0.2), value: formIsValid)
+                            HStack {
+                                Text(showVerificationField ? "Verify" : "Send Code")
+                                    .font(.system(size: 17, weight: .semibold))
+                                
+                                if formIsValid {
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 17, weight: .semibold))
+                                }
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(formIsValid ? Color("Gold") : Color.gray.opacity(0.3))
+                            )
+                            .animation(.easeInOut(duration: 0.2), value: formIsValid)
                         }
                         .disabled(!formIsValid)
                     }

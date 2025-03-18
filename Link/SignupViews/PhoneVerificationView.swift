@@ -28,7 +28,7 @@ struct PhoneVerificationView: View {
                         .font(.system(size: 60))
                         .foregroundColor(Color("Gold")) // #FFD700
                         .padding(.bottom, 8)
-                    
+                        .symbolEffect(.bounce, options: .repeating)
                     Text("Lumé")
                         .font(.custom("GreatVibes-Regular", size: 50))
                         .foregroundColor(.accent)
@@ -83,16 +83,23 @@ struct PhoneVerificationView: View {
                             .scaleEffect(1.2)
                     } else {
                         Button(action: sendVerificationCode) {
-                            Text("Continue")
-                                .font(.custom("Lora-Regular", size: 20))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(phoneNumber.count >= 10 ? Color("Gold") : Color.gray.opacity(0.3))
-                                )
-                                .animation(.easeInOut(duration: 0.2), value: phoneNumber.count >= 10)
+                            HStack {
+                                Text("Continue")
+                                    .font(.system(size: 17, weight: .semibold))
+                                
+                                if phoneNumber.count >= 10 {
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 17, weight: .semibold))
+                                }
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(phoneNumber.count >= 10 ? Color("Gold") : Color.gray.opacity(0.3))
+                            )
+                            .animation(.easeInOut(duration: 0.2), value: phoneNumber.count >= 10)
                         }
                         .disabled(phoneNumber.count < 10 || isLoading)
                     }

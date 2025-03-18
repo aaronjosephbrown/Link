@@ -26,72 +26,87 @@ struct SexualitySelectionView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("What's your sexuality?")
-                .font(.title)
-                .padding(.top)
-            
-            Text("Select your sexuality")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            SignupProgressView(currentStep: 4, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(sexualityOptions, id: \.self) { sexuality in
-                        Button(action: { selectedSexuality = sexuality }) {
-                            HStack {
-                                Text(sexuality)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedSexuality == sexuality {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Image(systemName: "heart.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .padding(.bottom, 8)
+                            .symbolEffect(.bounce, options: .repeating)
+                        Text("What's your sexuality?")
+                            .font(.custom("Lora-Regular", size: 19))
+                            .foregroundColor(Color.accent)
+                    }
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Sexuality options
+                    VStack(spacing: 12) {
+                        ForEach(sexualityOptions, id: \.self) { option in
+                            Button(action: { selectedSexuality = option }) {
+                                HStack {
+                                    Text(option)
+                                        .font(.custom("Lora-Regular", size: 17))
+                                        .foregroundColor(Color.accent)
+                                    Spacer()
+                                    if selectedSexuality == option {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(Color("Gold"))
+                                    }
                                 }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedSexuality == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedSexuality == sexuality ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            )
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                Text("Continue")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(selectedSexuality != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                    )
+                                    .animation(.easeInOut(duration: 0.2), value: selectedSexuality != nil)
+                            }
+                            .disabled(selectedSexuality == nil)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: saveSexualityAndContinue) {
-                    Text("Continue")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(selectedSexuality != nil ? Color.blue : Color.gray)
-                        )
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
                 }
-                .disabled(selectedSexuality == nil)
-                .padding(.horizontal)
             }
-        }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
         }
     }
     
-    private func saveSexualityAndContinue() {
+    private func saveAndContinue() {
         guard let sexuality = selectedSexuality else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
@@ -124,8 +139,24 @@ struct SexualitySelectionView: View {
 }
 
 #Preview {
-    NavigationView {
-        SexualitySelectionView(isAuthenticated: .constant(true), currentStep: .constant(0))
-            .environmentObject(AppViewModel())
+    NavigationStack {
+        SexualitySelectionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(4)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        SexualitySelectionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(4)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

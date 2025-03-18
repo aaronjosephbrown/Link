@@ -1,13 +1,12 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import SwiftUI
 
 struct SexualityPreferenceView: View {
     @Binding var isAuthenticated: Bool
     @Binding var currentStep: Int
     @EnvironmentObject var appViewModel: AppViewModel
-    @State private var selectedPreferences: Set<String> = []
+    @State private var selectedPreference: String?
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
@@ -17,95 +16,95 @@ struct SexualityPreferenceView: View {
     private let preferenceOptions = [
         "Men",
         "Women",
-        "Non-binary people",
-        "Everyone"
+        "Both",
+        "Non-binary",
+        "All",
+        "Prefer not to say"
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Dating Preferences")
-                .font(.title)
-                .padding(.top)
-            
-            Text("Select who you want to date")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            SignupProgressView(currentStep: 5, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            Text("Who would you like to date?")
-                .font(.caption)
-                .foregroundColor(.gray)
-            
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(preferenceOptions, id: \.self) { preference in
-                        Button(action: { togglePreference(preference) }) {
-                            HStack {
-                                Text(preference)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedPreferences.contains(preference) {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Image(systemName: "person.2.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .padding(.bottom, 8)
+                            .symbolEffect(.bounce, options: .repeating)
+                        Text("Who are you interested in?")
+                            .font(.custom("Lora-Regular", size: 19))
+                            .foregroundColor(Color.accent)
+                    }
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Preference options
+                    VStack(spacing: 12) {
+                        ForEach(preferenceOptions, id: \.self) { option in
+                            Button(action: { selectedPreference = option }) {
+                                HStack {
+                                    Text(option)
+                                        .font(.custom("Lora-Regular", size: 17))
+                                        .foregroundColor(Color.accent)
+                                    Spacer()
+                                    if selectedPreference == option {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(Color("Gold"))
+                                    }
                                 }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedPreference == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedPreferences.contains(preference) ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            )
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                Text("Continue")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(selectedPreference != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                    )
+                                    .animation(.easeInOut(duration: 0.2), value: selectedPreference != nil)
+                            }
+                            .disabled(selectedPreference == nil)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: savePreferencesAndContinue) {
-                    Text("Continue")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(!selectedPreferences.isEmpty ? Color.blue : Color.gray)
-                        )
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
                 }
-                .disabled(selectedPreferences.isEmpty)
-                .padding(.horizontal)
-            }
-        }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-    }
-    
-    private func togglePreference(_ preference: String) {
-        if preference == "Everyone" {
-            selectedPreferences = ["Everyone"]
-        } else {
-            selectedPreferences.remove("Everyone")
-            if selectedPreferences.contains(preference) {
-                selectedPreferences.remove(preference)
-            } else {
-                selectedPreferences.insert(preference)
             }
         }
     }
     
-    private func savePreferencesAndContinue() {
-        guard !selectedPreferences.isEmpty else { return }
+    private func saveAndContinue() {
+        guard let preference = selectedPreference else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
             showError = true
@@ -115,7 +114,7 @@ struct SexualityPreferenceView: View {
         isLoading = true
         
         let userData: [String: Any] = [
-            "datingPreferences": Array(selectedPreferences),
+            "sexualityPreference": preference,
             "setupProgress": SignupProgress.sexualityPreferenceComplete.rawValue
         ]
         
@@ -123,7 +122,7 @@ struct SexualityPreferenceView: View {
             isLoading = false
             
             if let error = error {
-                errorMessage = "Error saving preferences: \(error.localizedDescription)"
+                errorMessage = "Error saving preference: \(error.localizedDescription)"
                 showError = true
                 return
             }
@@ -137,8 +136,24 @@ struct SexualityPreferenceView: View {
 }
 
 #Preview {
-    NavigationView {
-        SexualityPreferenceView(isAuthenticated: .constant(true), currentStep: .constant(0))
-            .environmentObject(AppViewModel())
+    NavigationStack {
+        SexualityPreferenceView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(5)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        SexualityPreferenceView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(5)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

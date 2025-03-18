@@ -24,72 +24,87 @@ struct GenderSelectionView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("What's your gender?")
-                .font(.title)
-                .padding(.top)
-            
-            Text("Select your gender")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            SignupProgressView(currentStep: currentStep, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(genderOptions, id: \.self) { gender in
-                        Button(action: { selectedGender = gender }) {
-                            HStack {
-                                Text(gender)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedGender == gender {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Image(systemName: "person.2.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .padding(.bottom, 8)
+                            .symbolEffect(.bounce, options: .repeating)
+                        Text("What's your gender?")
+                            .font(.custom("Lora-Regular", size: 19))
+                            .foregroundColor(Color.accent)
+                    }
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Gender options
+                    VStack(spacing: 12) {
+                        ForEach(genderOptions, id: \.self) { option in
+                            Button(action: { selectedGender = option }) {
+                                HStack {
+                                    Text(option)
+                                        .font(.custom("Lora-Regular", size: 17))
+                                        .foregroundColor(Color.accent)
+                                    Spacer()
+                                    if selectedGender == option {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(Color("Gold"))
+                                    }
                                 }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedGender == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedGender == gender ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            )
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                Text("Continue")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(selectedGender != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                    )
+                                    .animation(.easeInOut(duration: 0.2), value: selectedGender != nil)
+                            }
+                            .disabled(selectedGender == nil)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: saveGenderAndContinue) {
-                    Text("Continue")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(selectedGender != nil ? Color.blue : Color.gray)
-                        )
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
                 }
-                .disabled(selectedGender == nil)
-                .padding(.horizontal)
             }
-        }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
         }
     }
     
-    private func saveGenderAndContinue() {
+    private func saveAndContinue() {
         guard let gender = selectedGender else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
@@ -113,14 +128,33 @@ struct GenderSelectionView: View {
                 return
             }
             
-            appViewModel.updateProgress(.genderComplete)
-            currentStep = 4
+            withAnimation {
+                appViewModel.updateProgress(.genderComplete)
+                currentStep = 4
+            }
         }
     }
 }
 
 #Preview {
-    NavigationView {
-        GenderSelectionView(isAuthenticated: .constant(true), currentStep: .constant(0))
+    NavigationStack {
+        GenderSelectionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(3)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        GenderSelectionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(3)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

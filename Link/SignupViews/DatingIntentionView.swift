@@ -10,7 +10,6 @@ struct DatingIntentionView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToEthnicity = false
     
     private let db = Firestore.firestore()
     
@@ -23,75 +22,91 @@ struct DatingIntentionView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("What are you looking for?")
-                .font(.title)
-                .padding(.top)
-            
-            Text("Select your dating intention")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            SignupProgressView(currentStep: 7, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(intentionOptions, id: \.self) { intention in
-                        Button(action: { selectedIntention = intention }) {
-                            HStack {
-                                Text(intention)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedIntention == intention {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .symbolEffect(.bounce, options: .repeating)
+                        
+                        Text("What are you looking for?")
+                            .font(.custom("Lora-Regular", size: 24))
+                            .foregroundColor(Color.accent)
+                        
+                        Text("This helps us find better matches for you")
+                            .font(.custom("Lora-Regular", size: 16))
+                            .foregroundColor(Color.accent.opacity(0.7))
+                    }
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Intention options
+                    VStack(spacing: 12) {
+                        ForEach(intentionOptions, id: \.self) { option in
+                            Button(action: { selectedIntention = option }) {
+                                HStack {
+                                    Text(option)
+                                        .font(.custom("Lora-Regular", size: 17))
+                                        .foregroundColor(Color.accent)
+                                    Spacer()
+                                    if selectedIntention == option {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(Color("Gold"))
+                                    }
                                 }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(selectedIntention == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                )
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(selectedIntention == intention ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            )
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                Text("Continue")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(selectedIntention != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                    )
+                                    .animation(.easeInOut(duration: 0.2), value: selectedIntention != nil)
+                            }
+                            .disabled(selectedIntention == nil)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: saveIntentionAndContinue) {
-                    Text("Continue")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(selectedIntention != nil ? Color.blue : Color.gray)
-                        )
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
                 }
-                .disabled(selectedIntention == nil)
-                .padding(.horizontal)
             }
-        }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-        .navigationDestination(isPresented: $navigateToEthnicity) {
-            EthnicitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         }
     }
     
-    private func saveIntentionAndContinue() {
+    private func saveAndContinue() {
         guard let intention = selectedIntention else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
@@ -124,8 +139,24 @@ struct DatingIntentionView: View {
 }
 
 #Preview {
-    NavigationView {
-        DatingIntentionView(isAuthenticated: .constant(true), currentStep: .constant(0))
-            .environmentObject(AppViewModel())
+    NavigationStack {
+        DatingIntentionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(7)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        DatingIntentionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(7)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

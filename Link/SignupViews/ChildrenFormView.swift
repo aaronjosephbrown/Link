@@ -15,51 +15,119 @@ struct ChildrenFormView: View {
     private let db = Firestore.firestore()
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Do you have children?")
-                .font(.title)
-                .padding(.top)
-            
-            SignupProgressView(currentStep: 8, totalSteps: 17)
-                .padding(.vertical, 20)
-            
-            Toggle("I have children", isOn: $hasChildren)
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-            
-            if hasChildren {
-                Stepper("Number of children: \(numberOfChildren)", value: $numberOfChildren, in: 1...10)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-            }
-            
-            Spacer()
-            
-            if isLoading {
-                ProgressView()
-            } else {
-                Button(action: saveAndContinue) {
-                    Text("Continue")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.blue)
-                        )
+        BackgroundView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Image(systemName: "figure.2.and.child")
+                            .font(.system(size: 60))
+                            .foregroundColor(Color("Gold"))
+                            .padding(.bottom, 8)
+                        
+                        Text("Do you have children?")
+                            .font(.custom("Lora-Regular", size: 19))
+                            .foregroundColor(Color.accent)
+                    }
+                    .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    
+                    // Children form
+                    VStack(spacing: 20) {
+                        // Has children toggle
+                        Button(action: { hasChildren.toggle() }) {
+                            HStack {
+                                Text("I have children")
+                                    .font(.custom("Lora-Regular", size: 17))
+                                    .foregroundColor(Color.accent)
+                                Spacer()
+                                if hasChildren {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(Color("Gold"))
+                                }
+                            }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(hasChildren ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                            )
+                        }
+                        
+                        if hasChildren {
+                            // Number of children stepper
+                            HStack {
+                                Text("Number of children:")
+                                    .font(.custom("Lora-Regular", size: 17))
+                                    .foregroundColor(Color.accent)
+                                Spacer()
+                                HStack(spacing: 20) {
+                                    Button(action: { if numberOfChildren > 1 { numberOfChildren -= 1 } }) {
+                                        Image(systemName: "minus.circle.fill")
+                                            .foregroundColor(Color("Gold"))
+                                    }
+                                    .disabled(numberOfChildren <= 1)
+                                    
+                                    Text("\(numberOfChildren)")
+                                        .font(.custom("Lora-Regular", size: 17))
+                                        .foregroundColor(Color.accent)
+                                        .frame(minWidth: 30)
+                                    
+                                    Button(action: { if numberOfChildren < 10 { numberOfChildren += 1 } }) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .foregroundColor(Color("Gold"))
+                                    }
+                                    .disabled(numberOfChildren >= 10)
+                                }
+                            }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
+                            )
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // Continue button
+                    VStack(spacing: 16) {
+                        if isLoading {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                        } else {
+                            Button(action: saveAndContinue) {
+                                HStack {
+                                    Text("Continue")
+                                        .font(.system(size: 17, weight: .semibold))
+                                    
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 17, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(Color("Gold"))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: true)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal)
+                .padding()
+                .navigationBarBackButtonHidden(true)
+                .alert("Error", isPresented: $showError) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(errorMessage)
+                }
             }
-        }
-        .padding()
-        .navigationBarBackButtonHidden(true)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
         }
     }
     
@@ -96,8 +164,24 @@ struct ChildrenFormView: View {
 }
 
 #Preview {
-    NavigationView {
-        ChildrenFormView(isAuthenticated: .constant(true), currentStep: .constant(0))
-            .environmentObject(AppViewModel())
+    NavigationStack {
+        ChildrenFormView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(8)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        ChildrenFormView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(8)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

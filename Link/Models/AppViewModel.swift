@@ -20,6 +20,8 @@ enum SignupProgress: String {
     case drinkingComplete
     case smokingComplete
     case politicsComplete
+    case drugsComplete
+    case photosComplete
     case complete
 }
 
