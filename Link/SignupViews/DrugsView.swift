@@ -10,7 +10,7 @@ struct DrugsView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var setupComplete = false
+    @State private var navigateToProfilePictures = false
     
     private let db = Firestore.firestore()
     
@@ -124,8 +124,8 @@ struct DrugsView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $setupComplete) {
-            MainView(isAuthenticated: $isAuthenticated)
+        .navigationDestination(isPresented: $navigateToProfilePictures) {
+            ProfilePicturesView(isAuthenticated: $isAuthenticated)
         }
     }
     
@@ -156,6 +156,7 @@ struct DrugsView: View {
             withAnimation {
                 appViewModel.updateProgress(.drugsComplete)
                 currentStep = 17
+                navigateToProfilePictures = true
             }
         }
     }

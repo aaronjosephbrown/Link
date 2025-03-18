@@ -11,9 +11,11 @@ struct ProfilePicturesView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var showPhotoPicker = false
+    @State private var draggedItem: UIImage?
     @State private var uploadTasks: [StorageUploadTask] = []
     @Binding var isAuthenticated: Bool
     @EnvironmentObject var appViewModel: AppViewModel
+    @Namespace private var namespace
     
     private let requiredPhotoCount = 6
     private let storage = Storage.storage()
@@ -41,40 +43,54 @@ struct ProfilePicturesView: View {
                         GridItem(.flexible()),
                         GridItem(.flexible())
                     ], spacing: 16) {
-                        ForEach(0..<requiredPhotoCount, id: \.self) { index in
-                            if index < selectedImages.count {
-                                Image(uiImage: selectedImages[index])
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 100, height: 100)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(Color("Gold"), style: StrokeStyle(lineWidth: 2, dash: [5]))
-                                    )
-                                    .onTapGesture {
-                                        showPhotoPicker = true
-                                    }
-                            } else {
-                                Button(action: {
-                                    showPhotoPicker = true
-                                }) {
+                        ForEach(Array(selectedImages.enumerated()), id: \.offset) { index, image in
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 100, height: 133)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
                                     RoundedRectangle(cornerRadius: 10)
                                         .stroke(Color("Gold"), style: StrokeStyle(lineWidth: 2, dash: [5]))
-                                        .frame(width: 100, height: 100)
-                                        .overlay(
+                                )
+                                .contentShape(Rectangle())
+                                .matchedGeometryEffect(id: image, in: namespace)
+                                .animation(.interactiveSpring(response: 0.5, dampingFraction: 0.8), value: selectedImages)
+                                .onDrag {
+                                    hapticFeedback()
+                                    draggedItem = image
+                                    return NSItemProvider(object: UIImage())
+                                }
+                                .onDrop(of: [.item], delegate: DropViewDelegate(item: image, items: $selectedImages, draggedItem: $draggedItem))
+                        }
+                        
+                        // Add button placeholders
+                        ForEach(selectedImages.count..<requiredPhotoCount, id: \.self) { _ in
+                            Button(action: {
+                                withAnimation {
+                                    showPhotoPicker = true
+                                }
+                            }) {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color("Gold"), style: StrokeStyle(lineWidth: 2, dash: [5]))
+                                    .frame(width: 100, height: 133)
+                                    .overlay(
+                                        VStack(spacing: 8) {
                                             Image(systemName: "plus")
                                                 .foregroundColor(Color("Gold"))
                                                 .font(.system(size: 30))
-                                        )
-                                }
+                                            Text("Add Photo")
+                                                .font(.caption)
+                                                .foregroundColor(Color("Gold"))
+                                        }
+                                    )
                             }
                         }
                     }
                     .padding()
                     
                     VStack(spacing: 8) {
-                        Text("Tap to edit, drag to reorder")
+                        Text("Drag to reorder")
                             .font(.custom("Lora-Regular", size: 15))
                             .foregroundColor(Color.accent)
                         Text("\(requiredPhotoCount) required")
@@ -112,19 +128,23 @@ struct ProfilePicturesView: View {
                 }
                 .padding()
             }
+            .navigationBarBackButtonHidden(true)
             .photosPicker(isPresented: $showPhotoPicker,
                          selection: $selectedItems,
-                         maxSelectionCount: requiredPhotoCount,
-                         matching: .images)
-            .onChange(of: selectedItems) { _ , _ in
+                         maxSelectionCount: requiredPhotoCount - selectedImages.count,
+                         matching: .images,
+                         preferredItemEncoding: .automatic)
+            .tint(Color("Gold"))
+            .onChange(of: selectedItems) { _ , newItems in
                 Task {
-                    selectedImages = []
-                    for item in selectedItems {
+                    showPhotoPicker = false
+                    for item in newItems {
                         if let data = try? await item.loadTransferable(type: Data.self),
                            let image = UIImage(data: data) {
                             selectedImages.append(image)
                         }
                     }
+                    selectedItems.removeAll()
                 }
             }
             .alert("Error", isPresented: $showError) {
@@ -226,6 +246,47 @@ struct ProfilePicturesView: View {
                     isAuthenticated = true
                 }
             }
+        }
+    }
+    
+    private func hapticFeedback() {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+    }
+}
+
+struct DropViewDelegate: DropDelegate {
+    let item: UIImage
+    @Binding var items: [UIImage]
+    @Binding var draggedItem: UIImage?
+    
+    func performDrop(info: DropInfo) -> Bool {
+        guard let draggedItem = draggedItem else { return false }
+        
+        if let fromIndex = items.firstIndex(where: { $0 === draggedItem }),
+           let toIndex = items.firstIndex(where: { $0 === item }) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                let from = items[fromIndex]
+                items[fromIndex] = items[toIndex]
+                items[toIndex] = from
+            }
+        }
+        
+        return true
+    }
+    
+    func dropEntered(info: DropInfo) {
+        guard let draggedItem = draggedItem else { return }
+        
+        if let fromIndex = items.firstIndex(where: { $0 === draggedItem }),
+           let toIndex = items.firstIndex(where: { $0 === item }) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                let from = items[fromIndex]
+                items[fromIndex] = items[toIndex]
+                items[toIndex] = from
+            }
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
         }
     }
 }
