@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SignupProgressView: View {
     let currentStep: Int
-    let totalSteps: Int
+    let totalSteps: Int = 19
     
     var body: some View {
         HStack(spacing: 4) {
@@ -17,5 +17,5 @@ struct SignupProgressView: View {
 }
 
 #Preview {
-    SignupProgressView(currentStep: 2, totalSteps: 5)
+    SignupProgressView(currentStep: 2)
 } 

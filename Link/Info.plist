@@ -26,5 +26,9 @@
 		<string>Lora-Regular.ttf</string>
 		<string>GreatVibes-Regular.ttf</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Lumé needs your location to help find matches near you</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Lumé needs your location to help find matches near you and notify you of potential matches in your area</string>
 </dict>
 </plist>

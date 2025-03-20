@@ -90,7 +90,7 @@ struct DOBVerificationView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Date form
                     VStack(spacing: 24) {

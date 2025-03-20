@@ -41,7 +41,7 @@ struct GenderSelectionView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Gender options
                     VStack(spacing: 12) {

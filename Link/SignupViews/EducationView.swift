@@ -43,7 +43,7 @@ struct EducationView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Education options
                     VStack(spacing: 12) {
@@ -132,7 +132,7 @@ struct EducationView: View {
             
             withAnimation {
                 appViewModel.updateProgress(.educationComplete)
-                currentStep = 11
+                currentStep = 10
             }
         }
     }

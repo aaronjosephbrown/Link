@@ -10,7 +10,6 @@ struct PoliticalView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToDrinking = false
     
     private let db = Firestore.firestore()
     
@@ -46,7 +45,7 @@ struct PoliticalView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Options
                     VStack(spacing: 16) {
@@ -125,9 +124,6 @@ struct PoliticalView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $navigateToDrinking) {
-            DrinkingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
-        }
     }
     
     private func saveAndContinue() {
@@ -157,7 +153,6 @@ struct PoliticalView: View {
             withAnimation {
                 appViewModel.updateProgress(.politicsComplete)
                 currentStep = 16
-                navigateToDrinking = true
             }
         }
     }

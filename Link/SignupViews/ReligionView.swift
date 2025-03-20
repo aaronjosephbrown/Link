@@ -10,7 +10,6 @@ struct ReligionView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToEthnicity = false
     
     private let db = Firestore.firestore()
     
@@ -50,7 +49,7 @@ struct ReligionView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Religion options
                     VStack(spacing: 16) {
@@ -129,9 +128,6 @@ struct ReligionView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $navigateToEthnicity) {
-            EthnicitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
-        }
     }
     
     private func saveAndContinue() {
@@ -160,8 +156,7 @@ struct ReligionView: View {
             
             withAnimation {
                 appViewModel.updateProgress(.religionComplete)
-                currentStep = 12
-                navigateToEthnicity = true
+                currentStep = 11
             }
         }
     }

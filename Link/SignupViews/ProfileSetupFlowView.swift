@@ -6,117 +6,140 @@ struct ProfileSetupFlowView: View {
     @Binding var isAuthenticated: Bool
     @EnvironmentObject var appViewModel: AppViewModel
     @State private var currentStep = 0
+    @State private var lastProgress: SignupProgress?
     
     var body: some View {
         NavigationStack {
             content
                 .navigationBarBackButtonHidden(true)
+                .transition(.slide)
         }
         .onAppear {
             initializeStep()
         }
-        .onChange(of: appViewModel.getCurrentProgress()) { _ , newProgress in
-            currentStep = stepForProgress(newProgress)
+        .onChange(of: appViewModel.getCurrentProgress()) { oldProgress, newProgress in
+            // Only update if the progress has actually changed
+            guard oldProgress != newProgress else { return }
+            
+            print("Progress changed from \(oldProgress) to \(newProgress)")
+            withAnimation(.easeInOut(duration: 0.3)) {
+                currentStep = stepForProgress(newProgress)
+                print("Current step updated to: \(currentStep)")
+            }
         }
     }
     
     private func initializeStep() {
         let progress = appViewModel.getCurrentProgress()
-        withAnimation {
+        print("Initializing step with progress: \(progress)")
+        withAnimation(.easeInOut(duration: 0.3)) {
             currentStep = stepForProgress(progress)
+            print("Initial step set to: \(currentStep)")
         }
     }
     
     private func stepForProgress(_ progress: SignupProgress) -> Int {
+        let step: Int
         switch progress {
         case .initial:
-            return 0
+            step = 0
         case .nameEntered:
-            return 1
+            step = 1
         case .emailVerified:
-            return 2
+            step = 2
         case .dobVerified:
-            return 3
+            step = 3
         case .genderComplete:
-            return 4
+            step = 4
         case .sexualityComplete:
-            return 5
+            step = 5
         case .sexualityPreferenceComplete:
-            return 6
+            step = 6
         case .heightComplete:
-            return 7
+            step = 7
         case .datingIntentionComplete:
-            return 8
+            step = 8
         case .childrenComplete:
-            return 9
+            step = 9
         case .familyPlansComplete:
-            return 10
+            step = 10
         case .educationComplete:
-            return 11
+            step = 11
         case .religionComplete:
-            return 12
+            step = 12
         case .ethnicityComplete:
-            return 13
+            step = 13
         case .drinkingComplete:
-            return 14
+            step = 14
         case .smokingComplete:
-            return 15
+            step = 15
         case .politicsComplete:
-            return 16
+            step = 16
         case .drugsComplete:
-            return 17
+            step = 17
+        case .locationComplete:
+            step = 18
         case .photosComplete:
-            return 18
+            step = 19
         case .complete:
-            return 19
+            step = 20
+        @unknown default:
+            step = 0
         }
+        print("Converting progress \(progress) to step \(step)")
+        return step
     }
     
     @ViewBuilder
     private var content: some View {
+        let view: AnyView
         switch currentStep {
         case 0:
-            UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 1:
-            EmailCollectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(EmailCollectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 2:
-            DOBVerificationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(DOBVerificationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 3:
-            GenderSelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(GenderSelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 4:
-            SexualitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(SexualitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 5:
-            SexualityPreferenceView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(SexualityPreferenceView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 6:
-            HeightSelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(HeightSelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 7:
-            DatingIntentionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(DatingIntentionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 8:
-            ChildrenFormView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(ChildrenFormView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 9:
-            FamilyPlansView(isAuthenticated: $isAuthenticated, currentStep: $currentStep, hasChildren: false)
+            view = AnyView(FamilyPlansView(isAuthenticated: $isAuthenticated, currentStep: $currentStep, hasChildren: false))
         case 10:
-            EducationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(EducationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 11:
-            ReligionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(ReligionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 12:
-            EthnicitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(EthnicitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 13:
-            DrinkingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(DrinkingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 14:
-            SmokingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(SmokingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 15:
-            PoliticalView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(PoliticalView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 16:
-            DrugsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(DrugsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 17:
-            ProfilePicturesView(isAuthenticated: $isAuthenticated)
+            view = AnyView(LocationPermissionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         case 18:
-            ProgressView("Completing setup...")
+            view = AnyView(ProfilePicturesView(isAuthenticated: $isAuthenticated))
         case 19:
-            MainView(isAuthenticated: $isAuthenticated)
+            view = AnyView(ProgressView("Completing setup..."))
+        case 20:
+            view = AnyView(MainView(isAuthenticated: $isAuthenticated))
         default:
-            UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
+            view = AnyView(UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
         }
+        print("Rendering view for step \(currentStep)")
+        return view
     }
 }

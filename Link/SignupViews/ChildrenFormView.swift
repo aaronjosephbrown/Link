@@ -32,7 +32,7 @@ struct ChildrenFormView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Children form
                     VStack(spacing: 20) {

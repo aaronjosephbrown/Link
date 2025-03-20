@@ -14,58 +14,61 @@ struct ContentView: View {
     @AppStorage("setupComplete") private var localSetupComplete = false
     @AppStorage("currentSignupProgress") private var currentSignupProgress = SignupProgress.initial.rawValue
     @State private var isLoading = true
+    @State private var currentStep = 0
     @State private var authStateHandle: AuthStateDidChangeListenerHandle?
     @StateObject private var appViewModel = AppViewModel()
     
     private let db = Firestore.firestore()
     
     var body: some View {
-        Group {
-            if isLoading {
-                ProgressView("Loading...")
-                    .progressViewStyle(CircularProgressViewStyle())
-            } else if isAuthenticated {
-                if localSetupComplete {
-                    MainView(isAuthenticated: $isAuthenticated)
-                        .environmentObject(appViewModel)
+        NavigationStack {
+            ZStack {
+                if isLoading {
+                    ProgressView("Loading...")
+                        .progressViewStyle(CircularProgressViewStyle())
+                } else if isAuthenticated {
+                    if localSetupComplete {
+                        MainView(isAuthenticated: $isAuthenticated)
+                            .environmentObject(appViewModel)
+                    } else {
+                        ProfileSetupFlowView(isAuthenticated: $isAuthenticated)
+                            .environmentObject(appViewModel)
+                    }
                 } else {
-                    ProfileSetupFlowView(isAuthenticated: $isAuthenticated)
-                        .environmentObject(appViewModel)
-                }
-            } else {
-                NavigationView {
-                    PhoneVerificationView(isAuthenticated: $isAuthenticated)
+                    PhoneVerificationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
                 }
             }
-        }
-        .onAppear {
-            // Check for existing auth session
-            if Auth.auth().currentUser != nil {
-                isAuthenticated = true
-                checkSetupProgress()
-            } else {
-                // Reset progress if not authenticated
-                currentSignupProgress = SignupProgress.initial.rawValue
-                localSetupComplete = false
-                isLoading = false
-            }
-            
-            // Listen for auth state changes
-            authStateHandle = Auth.auth().addStateDidChangeListener { auth, user in
-                isAuthenticated = user != nil
-                if user != nil {
+            .onAppear {
+                // Check for existing auth session
+                if Auth.auth().currentUser != nil {
+                    isAuthenticated = true
                     checkSetupProgress()
                 } else {
-                    // Reset progress on logout
+                    // Reset progress if not authenticated
                     currentSignupProgress = SignupProgress.initial.rawValue
                     localSetupComplete = false
                     isLoading = false
+                    currentStep = 0
+                }
+                
+                // Listen for auth state changes
+                authStateHandle = Auth.auth().addStateDidChangeListener { auth, user in
+                    isAuthenticated = user != nil
+                    if user != nil {
+                        checkSetupProgress()
+                    } else {
+                        // Reset progress on logout
+                        currentSignupProgress = SignupProgress.initial.rawValue
+                        localSetupComplete = false
+                        isLoading = false
+                        currentStep = 0
+                    }
                 }
             }
-        }
-        .onDisappear {
-            if let handle = authStateHandle {
-                Auth.auth().removeStateDidChangeListener(handle)
+            .onDisappear {
+                if let handle = authStateHandle {
+                    Auth.auth().removeStateDidChangeListener(handle)
+                }
             }
         }
     }
@@ -91,10 +94,12 @@ struct ContentView: View {
                 currentSignupProgress = progress
                 localSetupComplete = progress == SignupProgress.complete.rawValue
                 appViewModel.updateProgress(SignupProgress(rawValue: progress) ?? .initial)
+                currentStep = appViewModel.getCurrentStep()
             } else {
                 // If no document exists, initialize with current local progress
                 let progress = SignupProgress(rawValue: currentSignupProgress) ?? .initial
                 appViewModel.updateProgress(progress)
+                currentStep = 1 // Start at profile setup if no document exists
             }
             isLoading = false
         }

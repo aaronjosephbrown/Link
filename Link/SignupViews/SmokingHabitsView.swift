@@ -12,7 +12,6 @@ struct SmokingHabitsView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToDrugs = false
     
     private let db = Firestore.firestore()
     
@@ -54,7 +53,7 @@ struct SmokingHabitsView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Options
                     VStack(spacing: 16) {
@@ -170,9 +169,6 @@ struct SmokingHabitsView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $navigateToDrugs) {
-            DrugsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
-        }
     }
     
     private func saveAndContinue() {
@@ -206,8 +202,7 @@ struct SmokingHabitsView: View {
             
             withAnimation {
                 appViewModel.updateProgress(.smokingComplete)
-                currentStep = 15
-                navigateToDrugs = true
+                currentStep = 14
             }
         }
     }

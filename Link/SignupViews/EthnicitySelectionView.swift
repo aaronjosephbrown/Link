@@ -13,7 +13,6 @@ struct EthnicitySelectionView: View {
     @State private var errorMessage = ""
     @State private var isSubcategoryVisible = false
     @State private var searchText = ""
-    @State private var navigateToDrinking = false
     
     private let db = Firestore.firestore()
     
@@ -90,7 +89,7 @@ struct EthnicitySelectionView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Search bar
                     HStack {
@@ -231,9 +230,6 @@ struct EthnicitySelectionView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $navigateToDrinking) {
-            DrinkingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
-        }
     }
     
     private func saveAndContinue() {
@@ -266,8 +262,7 @@ struct EthnicitySelectionView: View {
             
             withAnimation {
                 appViewModel.updateProgress(.ethnicityComplete)
-                currentStep = 13
-                navigateToDrinking = true
+                currentStep = 12
             }
         }
     }

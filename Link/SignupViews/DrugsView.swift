@@ -10,7 +10,6 @@ struct DrugsView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var navigateToProfilePictures = false
     
     private let db = Firestore.firestore()
     
@@ -45,7 +44,7 @@ struct DrugsView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Options
                     VStack(spacing: 16) {
@@ -84,7 +83,7 @@ struct DrugsView: View {
                     
                     Spacer()
                     
-                    // Complete Setup button
+                    // Continue button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
@@ -92,11 +91,11 @@ struct DrugsView: View {
                         } else {
                             Button(action: saveAndContinue) {
                                 HStack {
-                                    Text("Complete Setup")
+                                    Text("Continue")
                                         .font(.system(size: 17, weight: .semibold))
                                     
                                     if selectedOption != nil {
-                                        Image(systemName: "checkmark.circle.fill")
+                                        Image(systemName: "arrow.right")
                                             .font(.system(size: 17, weight: .semibold))
                                     }
                                 }
@@ -124,9 +123,6 @@ struct DrugsView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $navigateToProfilePictures) {
-            ProfilePicturesView(isAuthenticated: $isAuthenticated)
-        }
     }
     
     private func saveAndContinue() {
@@ -148,7 +144,7 @@ struct DrugsView: View {
             isLoading = false
             
             if let error = error {
-                errorMessage = "Error saving drug use information: \(error.localizedDescription)"
+                errorMessage = "Error saving drug use: \(error.localizedDescription)"
                 showError = true
                 return
             }
@@ -156,7 +152,6 @@ struct DrugsView: View {
             withAnimation {
                 appViewModel.updateProgress(.drugsComplete)
                 currentStep = 17
-                navigateToProfilePictures = true
             }
         }
     }

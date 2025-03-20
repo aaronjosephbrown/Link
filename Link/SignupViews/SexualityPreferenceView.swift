@@ -40,7 +40,7 @@ struct SexualityPreferenceView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Preference options
                     VStack(spacing: 12) {

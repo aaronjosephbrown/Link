@@ -34,7 +34,7 @@ struct UserProfileSetupView: View {
                     .padding(.top, 40)
                     
                     // Progress indicator
-                    SignupProgressView(currentStep: currentStep, totalSteps: 17)
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Form fields
                     VStack(spacing: 20) {
@@ -123,7 +123,8 @@ struct UserProfileSetupView: View {
                     Text(errorMessage)
                 }
                 .onAppear {
-                    checkExistingProfile()
+                    // Update current step based on progress
+                    currentStep = appViewModel.getCurrentStep()
                 }
             }
         }
@@ -132,53 +133,6 @@ struct UserProfileSetupView: View {
     private var formIsValid: Bool {
         !firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !lastName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-    
-    private func checkExistingProfile() {
-        appViewModel.checkCurrentProgress { progress in
-            switch progress {
-            case .nameEntered:
-                currentStep = 1
-            case .emailVerified:
-                currentStep = 2
-            case .dobVerified:
-                currentStep = 3
-            case .genderComplete:
-                currentStep = 4
-            case .sexualityComplete:
-                currentStep = 5
-            case .sexualityPreferenceComplete:
-                currentStep = 6
-            case .heightComplete:
-                currentStep = 7
-            case .datingIntentionComplete:
-                currentStep = 8
-            case .childrenComplete:
-                currentStep = 9
-            case .familyPlansComplete:
-                currentStep = 10
-            case .educationComplete:
-                currentStep = 11
-            case .religionComplete:
-                currentStep = 12
-            case .ethnicityComplete:
-                currentStep = 13
-            case .drinkingComplete:
-                currentStep = 14
-            case .smokingComplete:
-                currentStep = 15
-            case .politicsComplete:
-                currentStep = 16
-            case .drugsComplete:
-                currentStep = 17
-            case .photosComplete:
-                currentStep = 18
-            case .complete:
-                isAuthenticated = true
-            case .initial:
-                currentStep = 0
-            }
-        }
     }
     
     private func saveNameAndContinue() {

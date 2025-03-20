@@ -10,14 +10,15 @@ import FirebaseAuth
 
 struct PhoneVerificationView: View {
     @State private var phoneNumber = ""
-    @State private var isShowingVerificationCode = false
     @State private var verificationCode = ""
     @State private var verificationID = ""
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var isPhoneNumberFocused = false
+    @State private var isShowingVerificationCode = false
     @Binding var isAuthenticated: Bool
+    @Binding var currentStep: Int
     
     var body: some View {
         BackgroundView {
@@ -26,7 +27,7 @@ struct PhoneVerificationView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "heart.circle.fill")
                         .font(.system(size: 60))
-                        .foregroundColor(Color("Gold")) // #FFD700
+                        .foregroundColor(Color("Gold"))
                         .padding(.bottom, 8)
                         .symbolEffect(.bounce, options: .repeating)
                     Text("Lumé")
@@ -42,7 +43,7 @@ struct PhoneVerificationView: View {
                 .padding(.top, 40)
                 
                 // Progress indicator
-                //            SignupProgressView(currentStep: 0, totalSteps: 17)
+                SignupProgressView(currentStep: currentStep)
                 
                 // Phone number field
                 VStack(alignment: .leading, spacing: 8) {
@@ -66,7 +67,6 @@ struct PhoneVerificationView: View {
                     .background(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(isPhoneNumberFocused ? Color("Gold").opacity(0.3) : Color("Gold"), lineWidth: 2)
-                            
                     )
                     .onTapGesture { isPhoneNumberFocused = true }
                     .onSubmit { isPhoneNumberFocused = false }
@@ -109,17 +109,20 @@ struct PhoneVerificationView: View {
             }
             .padding()
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $isShowingVerificationCode) {
-                VerificationCodeView(verificationCode: $verificationCode,
-                                     phoneNumber: phoneNumber,
-                                     verificationID: verificationID,
-                                     isAuthenticated: $isAuthenticated)
-            }
             .alert("Error", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(errorMessage)
             }
+        }
+        .navigationDestination(isPresented: $isShowingVerificationCode) {
+            VerificationCodeView(
+                verificationCode: $verificationCode,
+                phoneNumber: phoneNumber,
+                verificationID: verificationID,
+                isAuthenticated: $isAuthenticated,
+                currentStep: $currentStep
+            )
         }
     }
     
@@ -151,6 +154,7 @@ struct VerificationCodeView: View {
     let phoneNumber: String
     let verificationID: String
     @Binding var isAuthenticated: Bool
+    @Binding var currentStep: Int
     @Environment(\.dismiss) private var dismiss
     @State private var isLoading = false
     @State private var errorMessage = ""
@@ -182,6 +186,9 @@ struct VerificationCodeView: View {
                     .frame(height: 40)
                 }
                 .padding(.top, 40)
+                
+                // Progress indicator
+                SignupProgressView(currentStep: currentStep)
                 
                 // Code field
                 VStack(alignment: .leading, spacing: 8) {
@@ -275,6 +282,7 @@ struct VerificationCodeView: View {
             
             // Successfully signed in
             isAuthenticated = true
+            currentStep = 1
             dismiss()
         }
     }
@@ -300,7 +308,10 @@ struct VerificationCodeView: View {
 
 #Preview("Phone Verification") {
     NavigationView {
-        PhoneVerificationView(isAuthenticated: .constant(false))
+        PhoneVerificationView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(0)
+        )
     }
 }
 
@@ -309,7 +320,8 @@ struct VerificationCodeView: View {
         verificationCode: .constant(""),
         phoneNumber: "123-456-7890",
         verificationID: "sample-id",
-        isAuthenticated: .constant(false)
+        isAuthenticated: .constant(false),
+        currentStep: .constant(0)
     )
 }
 
