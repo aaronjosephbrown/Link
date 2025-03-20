@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseAuth
+import FirebaseFirestore
 
 struct PhoneVerificationView: View {
     @State private var phoneNumber = ""
@@ -272,18 +273,50 @@ struct VerificationCodeView: View {
         )
         
         Auth.auth().signIn(with: credential) { result, error in
-            isLoading = false
-            
             if let error = error {
+                isLoading = false
                 errorMessage = error.localizedDescription
                 showError = true
                 return
             }
             
             // Successfully signed in
-            isAuthenticated = true
-            currentStep = 1
-            dismiss()
+            if let userId = Auth.auth().currentUser?.uid {
+                let db = Firestore.firestore()
+                db.collection("users").document(userId).getDocument { document, error in
+                    if let document = document, document.exists,
+                       let progress = document.data()?["setupProgress"] as? String,
+                       progress == SignupProgress.complete.rawValue {
+                        // User has completed setup, no need to set initial progress
+                        withAnimation {
+                            isAuthenticated = true
+                            currentStep = 1
+                        }
+                        isLoading = false
+                        dismiss()
+                        return
+                    } else {
+                        // Set initial progress for new users
+                        let userData: [String: Any] = ["setupProgress": SignupProgress.initial.rawValue]
+                        db.collection("users").document(userId).setData(userData, merge: true) { error in
+                            if let error = error {
+                                print("Error setting initial progress: \(error.localizedDescription)")
+                            }
+                            // Only update state and dismiss after Firestore is updated
+                            withAnimation {
+                                isAuthenticated = true
+                                currentStep = 1
+                            }
+                            isLoading = false
+                            dismiss()
+                        }
+                    }
+                }
+            } else {
+                isLoading = false
+                errorMessage = "No authenticated user found"
+                showError = true
+            }
         }
     }
     
