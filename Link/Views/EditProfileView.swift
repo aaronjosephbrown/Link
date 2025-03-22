@@ -306,6 +306,18 @@ struct EditProfileView: View {
     private func loadExistingPhotos() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         
+        // First try to load from local storage
+        if let localUrls = ImageStorageManager.shared.loadImageUrls(for: userId) {
+            existingPhotoUrls = localUrls
+            for index in 0..<localUrls.count {
+                if let image = ImageStorageManager.shared.loadImage(for: userId, at: index) {
+                    selectedImages.append(image)
+                }
+            }
+            return
+        }
+        
+        // If not found locally, load from Firestore
         db.collection("users").document(userId).getDocument { document, error in
             if let error = error {
                 errorMessage = "Error loading photos: \(error.localizedDescription)"
@@ -316,12 +328,17 @@ struct EditProfileView: View {
             if let document = document,
                let photoUrls = document.data()?["profilePictures"] as? [String] {
                 existingPhotoUrls = photoUrls
-                for urlString in photoUrls {
+                // Save URLs locally
+                ImageStorageManager.shared.saveImageUrls(photoUrls, for: userId)
+                
+                for (index, urlString) in photoUrls.enumerated() {
                     if let url = URL(string: urlString) {
                         URLSession.shared.dataTask(with: url) { data, _, _ in
                             if let data = data, let image = UIImage(data: data) {
                                 DispatchQueue.main.async {
                                     selectedImages.append(image)
+                                    // Save image locally
+                                    try? ImageStorageManager.shared.saveImage(image, for: userId, at: index)
                                 }
                             }
                         }.resume()
@@ -347,6 +364,9 @@ struct EditProfileView: View {
         }
         uploadTasks.removeAll()
         
+        // Delete existing local images
+        ImageStorageManager.shared.deleteAllImages(for: userId)
+        
         for urlString in existingPhotoUrls {
             if let url = URL(string: urlString) {
                 let storageRef = storage.reference(forURL: urlString)
@@ -360,6 +380,13 @@ struct EditProfileView: View {
         
         for (index, image) in selectedImages.enumerated() {
             group.enter()
+            
+            // Save image locally
+            do {
+                try ImageStorageManager.shared.saveImage(image, for: userId, at: index)
+            } catch {
+                print("Error saving image locally: \(error.localizedDescription)")
+            }
             
             guard let imageData = image.jpegData(compressionQuality: 0.7) else {
                 group.leave()
@@ -400,6 +427,8 @@ struct EditProfileView: View {
         
         group.notify(queue: .main) {
             if uploadedUrls.count == requiredPhotoCount {
+                // Save URLs locally
+                ImageStorageManager.shared.saveImageUrls(uploadedUrls, for: userId)
                 savePhotoUrlsToFirestore(urls: uploadedUrls, userId: userId)
             } else {
                 errorMessage = "Not all photos were uploaded successfully"

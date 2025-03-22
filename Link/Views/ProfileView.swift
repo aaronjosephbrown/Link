@@ -13,6 +13,7 @@ struct ProfileView: View {
     @State private var showEditProfile = false
     @State private var showGetMore = false
     @State private var showSafety = false
+    @State private var localProfileImage: UIImage?
     
     private let db = Firestore.firestore()
     private let storage = Storage.storage()
@@ -57,6 +58,12 @@ struct ProfileView: View {
                             if isLoadingImage {
                                 ProgressView()
                                     .frame(width: 110, height: 110)
+                            } else if let localImage = localProfileImage {
+                                Image(uiImage: localImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 110, height: 110)
+                                    .clipShape(Circle())
                             } else if let imageUrl = profileImageUrl {
                                 AsyncImage(url: URL(string: imageUrl)) { image in
                                     image
@@ -225,6 +232,9 @@ struct ProfileView: View {
                 }
                 .fullScreenCover(isPresented: $showEditProfile) {
                     EditProfileView(userName: $userName, isAuthenticated: $isAuthenticated, selectedTab: $selectedTab)
+                        .onDisappear {
+                            loadProfilePicture()
+                        }
                 }
                 .sheet(isPresented: $showGetMore) {
                     NavigationStack {
@@ -249,6 +259,14 @@ struct ProfileView: View {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         isLoadingImage = true
         
+        // First try to load from local storage
+        if let localImage = ImageStorageManager.shared.loadImage(for: userId, at: 0) {
+            localProfileImage = localImage
+            isLoadingImage = false
+            return
+        }
+        
+        // If not found locally, load from Firestore
         db.collection("users").document(userId).getDocument { document, error in
             if let error = error {
                 print("Error loading profile: \(error.localizedDescription)")

@@ -179,8 +179,18 @@ struct ProfilePicturesView: View {
         }
         uploadTasks.removeAll()
         
+        // Delete existing local images
+        ImageStorageManager.shared.deleteAllImages(for: userId)
+        
         for (index, image) in selectedImages.enumerated() {
             group.enter()
+            
+            // Save image locally
+            do {
+                try ImageStorageManager.shared.saveImage(image, for: userId, at: index)
+            } catch {
+                print("Error saving image locally: \(error.localizedDescription)")
+            }
             
             guard let imageData = image.jpegData(compressionQuality: 0.7) else {
                 group.leave()
@@ -221,6 +231,8 @@ struct ProfilePicturesView: View {
         
         group.notify(queue: .main) {
             if uploadedUrls.count == requiredPhotoCount {
+                // Save URLs locally
+                ImageStorageManager.shared.saveImageUrls(uploadedUrls, for: userId)
                 savePhotoUrlsToFirestore(urls: uploadedUrls, userId: userId)
             } else {
                 errorMessage = "Not all photos were uploaded successfully"
