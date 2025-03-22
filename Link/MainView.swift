@@ -13,7 +13,7 @@ struct MainView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var userName = ""
-    @State private var selectedTab = 0
+    @State private var selectedTab = "Home"
     @Binding var isAuthenticated: Bool
     
     private let db = Firestore.firestore()
@@ -42,37 +42,37 @@ struct MainView: View {
                 Text("Home")
                     .tabItem {
                         Image(systemName: "l.square")
-                            .environment(\.symbolVariants, selectedTab == 0 ? .fill : .none)
+                            .environment(\.symbolVariants, selectedTab == "Home" ? .fill : .none)
                     }
-                    .tag(0)
+                    .tag("Home")
                 
                 Text("Discover")
                     .tabItem {
                         Image(systemName: "star")
-                            .environment(\.symbolVariants, selectedTab == 1 ? .fill : .none)
+                            .environment(\.symbolVariants, selectedTab == "Discover" ? .fill : .none)
                     }
-                    .tag(1)
+                    .tag("Discover")
                 
                 Text("Likes")
                     .tabItem {
                         Image(systemName: "heart")
-                            .environment(\.symbolVariants, selectedTab == 2 ? .fill : .none)
+                            .environment(\.symbolVariants, selectedTab == "Likes" ? .fill : .none)
                     }
-                    .tag(2)
+                    .tag("Likes")
                 
                 Text("Messages")
                     .tabItem {
                         Image(systemName: "bubble.left")
-                            .environment(\.symbolVariants, selectedTab == 3 ? .fill : .none)
+                            .environment(\.symbolVariants, selectedTab == "Messages" ? .fill : .none)
                     }
-                    .tag(3)
+                    .tag("Messages")
                 
-                ProfileView(userName: $userName, isAuthenticated: $isAuthenticated)
+                ProfileView(userName: $userName, isAuthenticated: $isAuthenticated, selectedTab: $selectedTab)
                     .tabItem {
                         Image(systemName: "person.circle")
-                            .environment(\.symbolVariants, selectedTab == 4 ? .fill : .none)
+                            .environment(\.symbolVariants, selectedTab == "Profile" ? .fill : .none)
                     }
-                    .tag(4)
+                    .tag("Profile")
             }
             .tint(Color("Gold"))
             .alert("Error", isPresented: $showError) {
