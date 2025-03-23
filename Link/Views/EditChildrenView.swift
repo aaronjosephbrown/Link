@@ -20,7 +20,7 @@ struct EditChildrenView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        Image(systemName: "person.2.circle.fill")
+                        Image(systemName: "person.fill")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)

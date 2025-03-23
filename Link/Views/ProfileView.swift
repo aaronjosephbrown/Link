@@ -266,7 +266,7 @@ struct ProfileView: View {
                                             showEditChildren = true
                                         }) {
                                             HStack {
-                                                Image(systemName: "person.3.circle")
+                                                Image(systemName: "person.circle")
                                                     .foregroundColor(Color("Gold"))
                                                 Text("Children")
                                                     .foregroundColor(Color.accent)
