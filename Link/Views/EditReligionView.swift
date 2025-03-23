@@ -32,11 +32,19 @@ struct EditReligionView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
+                        HStack {
+                            Spacer()
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "xmark")
+                                    .font(.title2)
+                                    .foregroundColor(Color("Gold"))
+                            }
+                        }
                         Image(systemName: "sparkles")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)
-                        Text("Religion")
+                        Text("Edit Religion")
                             .font(.custom("Lora-Regular", size: 19))
                             .foregroundColor(Color.accent)
                     }

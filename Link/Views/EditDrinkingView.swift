@@ -26,11 +26,19 @@ struct EditDrinkingView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        Image(systemName: "wineglass")
+                        HStack {
+                            Spacer()
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "xmark")
+                                    .font(.title2)
+                                    .foregroundColor(Color("Gold"))
+                            }
+                        }
+                        Image(systemName: "wineglass.fill")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)
-                        Text("Drinking")
+                        Text("Edit Drinking Habits")
                             .font(.custom("Lora-Regular", size: 19))
                             .foregroundColor(Color.accent)
                     }

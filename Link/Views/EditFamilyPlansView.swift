@@ -27,11 +27,19 @@ struct EditFamilyPlansView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        Image(systemName: "house.circle.fill")
+                        HStack {
+                            Spacer()
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "xmark")
+                                    .font(.title2)
+                                    .foregroundColor(Color("Gold"))
+                            }
+                        }
+                        Image(systemName: "person.2.fill")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)
-                        Text(hasChildren ? "Do you want more children?" : "Do you want children in the future?")
+                        Text("Edit Family Plans")
                             .font(.custom("Lora-Regular", size: 19))
                             .foregroundColor(Color.accent)
                     }

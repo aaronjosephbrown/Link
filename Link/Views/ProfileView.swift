@@ -7,7 +7,7 @@ struct ProfileView: View {
     @Binding var userName: String
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
-    @State private var profileCompletion: Double = 0.44
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
     @State private var profileImageUrl: String?
     @State private var isLoadingImage = false
     @State private var selectedSection = 0
@@ -30,7 +30,6 @@ struct ProfileView: View {
     @State private var showPremiumSheet = false
     @State private var showBoostSheet = false
     @State private var showRosesSheet = false
-    @State private var showSettingsSheet = false
     @State private var showLogoutSheet = false
     @State private var showDeleteAccountSheet = false
     @State private var showDeleteConfirmationSheet = false
@@ -54,108 +53,139 @@ struct ProfileView: View {
     @State private var showEditSmoking = false
     @State private var showEditPolitics = false
     @State private var showEditDrugs = false
+    @State private var showFinishProfileSetup = false
+    @State private var profileSetupCompleted = false
+    @State private var showAppearanceLifestyle = false
+    @State private var showFitnessActivity = false
+    @State private var showDietaryPreferences = false
+    @State private var showPetsAnimals = false
     
     private let db = Firestore.firestore()
     private let storage = Storage.storage()
     
     var body: some View {
         NavigationStack {
-        BackgroundView {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    // Profile Header
-                    HStack {
-                        Text("Lumé")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color.accent)
-                        Spacer()
-                        Button(action: {}) {
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.title2)
-                                .foregroundColor(Color("Gold"))
-                        }
+            BackgroundView {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        // Profile Header
+                        HStack {
+                            Text("Lumé")
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .foregroundColor(Color.accent)
+                            Spacer()
+                            Button(action: {}) {
+                                Image(systemName: "slider.horizontal.3")
+                                    .font(.title2)
+                                    .foregroundColor(Color("Gold"))
+                            }
                             Button(action: { showSettings = true }) {
-                            Image(systemName: "gearshape")
-                                .font(.title2)
-                                .foregroundColor(Color("Gold"))
+                                Image(systemName: "gearshape")
+                                    .font(.title2)
+                                    .foregroundColor(Color("Gold"))
+                            }
                         }
-                    }
-                    .padding(.horizontal)
-                    
-                    // Profile Picture with Completion Ring
-                    ZStack {
-                        Circle()
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 8)
-                            .frame(width: 120, height: 120)
+                        .padding(.horizontal)
                         
-                        Circle()
-                            .trim(from: 0, to: profileCompletion)
-                            .stroke(Color("Gold"), lineWidth: 8)
-                            .frame(width: 120, height: 120)
-                            .rotationEffect(.degrees(-90))
-                        
-                        if isLoadingImage {
-                            ProgressView()
-                                .frame(width: 110, height: 110)
+                        // Profile Picture with Completion Ring
+                        ZStack {
+                            Circle()
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 8)
+                                .frame(width: 120, height: 120)
+                            
+                            Circle()
+                                .trim(from: 0, to: profileViewModel.profileCompletion)
+                                .stroke(Color("Gold"), lineWidth: 8)
+                                .frame(width: 120, height: 120)
+                                .rotationEffect(.degrees(-90))
+                            
+                            if isLoadingImage {
+                                ProgressView()
+                                    .frame(width: 110, height: 110)
                             } else if let localImage = localProfileImage {
                                 Image(uiImage: localImage)
                                     .resizable()
                                     .scaledToFill()
                                     .frame(width: 110, height: 110)
                                     .clipShape(Circle())
-                        } else if let imageUrl = profileImageUrl {
-                            AsyncImage(url: URL(string: imageUrl)) { image in
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 110, height: 110)
-                                    .clipShape(Circle())
-                            } placeholder: {
+                            } else if let imageUrl = profileImageUrl {
+                                AsyncImage(url: URL(string: imageUrl)) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 110, height: 110)
+                                        .clipShape(Circle())
+                                } placeholder: {
+                                    Circle()
+                                        .fill(Color.gray.opacity(0.2))
+                                        .frame(width: 110, height: 110)
+                                }
+                            } else {
                                 Circle()
                                     .fill(Color.gray.opacity(0.2))
                                     .frame(width: 110, height: 110)
                             }
-                        } else {
-                            Circle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(width: 110, height: 110)
+                            
+                            if profileViewModel.profileCompletion >= 1.0 {
+                                Text("Complete")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(Color.accent)
+                                    .offset(y: 70)
+                            } else {
+                                Text("\(Int(profileViewModel.profileCompletion * 100))%")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(Color.accent)
+                                    .offset(y: 70)
+                            }
                         }
                         
-                        Text("\(Int(profileCompletion * 100))%")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color.accent)
-                            .offset(y: 70)
-                    }
-                    
-                    // Name and Verification
-                    HStack {
-                        Text(userName)
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(Color.accent)
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundColor(Color("Gold"))
-                    }
-                    
-                    Text("Incomplete profile")
-                        .foregroundColor(Color.accent.opacity(0.7))
-                    
-                    // Navigation Tabs
-                    HStack(spacing: 0) {
-                            Button(action: { selectedSection = 0 }) {
-                            Text("Get more")
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                    .foregroundColor(selectedSection == 0 ? Color("Gold") : Color.accent)
+                        // Name and Verification
+                        HStack {
+                            Text(userName)
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(Color.accent)
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundColor(Color("Gold"))
                         }
                         
-                            Button(action: { selectedSection = 1 }) {
-                            Text("Safety")
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                    .foregroundColor(selectedSection == 1 ? Color("Gold") : Color.accent)
+                        Text("Incomplete profile")
+                            .foregroundColor(Color.accent.opacity(0.7))
+                        
+                        if !profileSetupCompleted {
+                            // Finish Profile Setup Button
+                            Button(action: { showFinishProfileSetup = true }) {
+                                Text("Finish Profile Setup")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color("Gold"))
+                                    .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                            .fullScreenCover(isPresented: $showFinishProfileSetup) {
+                                FinishProfileSetupView()
+                            }
+                        }
+                        
+                        // Navigation Tabs
+                        HStack(spacing: 0) {
+                                Button(action: { selectedSection = 0 }) {
+                                Text("Get more")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                        .foregroundColor(selectedSection == 0 ? Color("Gold") : Color.accent)
+                            }
+                            
+                                Button(action: { selectedSection = 1 }) {
+                                Text("Safety")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                        .foregroundColor(selectedSection == 1 ? Color("Gold") : Color.accent)
                             }
                             
                             Button(action: { selectedSection = 2 }) {
@@ -184,6 +214,25 @@ struct ProfileView: View {
                                         .font(.headline)
                                         .foregroundColor(Color.accent)
                                         .padding(.horizontal)
+                                    
+                                    if !profileSetupCompleted {
+                                        Button(action: { showFinishProfileSetup = true }) {
+                                            HStack {
+                                                Image(systemName: "checkmark.circle")
+                                                    .foregroundColor(Color("Gold"))
+                                                Text("Complete Profile Setup")
+                                                    .foregroundColor(Color.accent)
+                                                Spacer()
+                                                Image(systemName: "chevron.right")
+                                                    .foregroundColor(Color("Gold"))
+                                            }
+                                            .padding()
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
+                                            )
+                                        }
+                                    }
                                     
                                     VStack(spacing: 12) {
                                         Button(action: {
@@ -470,8 +519,84 @@ struct ProfileView: View {
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
                                             )
                                         }
+                                        
+                                        // Profile Setup Section
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text("Profile Setup")
+                                                .font(.headline)
+                                                .foregroundColor(Color.accent)
+                                                .padding(.top)
+                                            
+                                            Button(action: { showAppearanceLifestyle = true }) {
+                                                HStack {
+                                                    Image(systemName: "person.2")
+                                                        .foregroundColor(Color("Gold"))
+                                                    Text("Appearance & Lifestyle")
+                                                        .foregroundColor(Color.accent)
+                                                    Spacer()
+                                                    Image(systemName: "chevron.right")
+                                                        .foregroundColor(Color("Gold"))
+                                                }
+                                                .padding()
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
+                                                )
+                                            }
+                                            
+                                            Button(action: { showFitnessActivity = true }) {
+                                                HStack {
+                                                    Image(systemName: "figure.run")
+                                                        .foregroundColor(Color("Gold"))
+                                                    Text("Fitness & Activity Level")
+                                                        .foregroundColor(Color.accent)
+                                                    Spacer()
+                                                    Image(systemName: "chevron.right")
+                                                        .foregroundColor(Color("Gold"))
+                                                }
+                                                .padding()
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
+                                                )
+                                            }
+                                            
+                                            Button(action: { showDietaryPreferences = true }) {
+                                                HStack {
+                                                    Image(systemName: "fork.knife")
+                                                        .foregroundColor(Color("Gold"))
+                                                    Text("Dietary Preferences")
+                                                        .foregroundColor(Color.accent)
+                                                    Spacer()
+                                                    Image(systemName: "chevron.right")
+                                                        .foregroundColor(Color("Gold"))
+                                                }
+                                                .padding()
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
+                                                )
+                                            }
+                                            
+                                            Button(action: { showPetsAnimals = true }) {
+                                                HStack {
+                                                    Image(systemName: "pawprint")
+                                                        .foregroundColor(Color("Gold"))
+                                                    Text("Pets & Animals")
+                                                        .foregroundColor(Color.accent)
+                                                    Spacer()
+                                                    Image(systemName: "chevron.right")
+                                                        .foregroundColor(Color("Gold"))
+                                                }
+                                                .padding()
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
+                                                )
+                                            }
+                                        }
+                                        
                                         Spacer()
-                                            .frame(height: 20)
                                     }
                                     .padding(.horizontal)
                                 }
@@ -489,10 +614,11 @@ struct ProfileView: View {
                 }
                 .onAppear {
                     loadProfilePicture()
+                    checkProfileCompletion()
                 }
             }
             .fullScreenCover(isPresented: $showEditProfileImagesFullScreen) {
-                EditProfileView(
+                EditProfileImageView(
                     userName: $userName,
                     isAuthenticated: $isAuthenticated,
                     selectedTab: $selectedTab,
@@ -558,6 +684,18 @@ struct ProfileView: View {
             .fullScreenCover(isPresented: $showEditDrugs) {
                 EditDrugsView(isAuthenticated: $isAuthenticated, selectedTab: $selectedTab)
             }
+            .fullScreenCover(isPresented: $showAppearanceLifestyle) {
+                AppearanceLifestyleView()
+            }
+            .fullScreenCover(isPresented: $showFitnessActivity) {
+                FitnessActivityView()
+            }
+            .fullScreenCover(isPresented: $showDietaryPreferences) {
+                DietaryPreferencesView()
+            }
+            .fullScreenCover(isPresented: $showPetsAnimals) {
+                PetsAnimalsView()
+            }
             .fullScreenCover(isPresented: $showSettings) {
                 SettingsView(isAuthenticated: $isAuthenticated)
             }
@@ -589,6 +727,55 @@ struct ProfileView: View {
                 profileImageUrl = firstPicture
             }
             isLoadingImage = false
+        }
+    }
+    
+    private func checkProfileCompletion() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        db.collection("users").document(userId).getDocument { document, error in
+            if let error = error {
+                print("Error checking profile completion: \(error.localizedDescription)")
+                return
+            }
+            
+            if let document = document {
+                let data = document.data() ?? [:]
+                profileSetupCompleted = data["profileSetupCompleted"] as? Bool ?? false
+                
+                // Calculate profile completion percentage
+                var completedFields = 0
+                var totalFields = 0
+                
+                // Profile Pictures (6 required)
+                if let photos = data["profilePictures"] as? [String] {
+                    completedFields += min(photos.count, 6)
+                    totalFields += 6
+                }
+                
+                // Profile Setup Fields
+                let setupFields = [
+                    "heightPreference", "bodyType", "preferredPartnerHeight",
+                    "activityLevel", "favoriteActivities", "diet",
+                    "hasPets", "petTypes", "animalPreference"
+                ]
+                
+                for field in setupFields {
+                    if let value = data[field] {
+                        if let array = value as? [Any] {
+                            if !array.isEmpty {
+                                completedFields += 1
+                            }
+                        } else if let string = value as? String, !string.isEmpty {
+                            completedFields += 1
+                        }
+                    }
+                    totalFields += 1
+                }
+                
+                let newCompletion = Double(completedFields) / Double(totalFields)
+                profileViewModel.profileCompletion = newCompletion
+            }
         }
     }
 }

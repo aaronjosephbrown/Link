@@ -92,54 +92,52 @@ struct ProfileSetupFlowView: View {
     
     @ViewBuilder
     private var content: some View {
-        let view: AnyView
+       
         switch currentStep {
         case 0:
-            view = AnyView(UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+           UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 1:
-            view = AnyView(EmailCollectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+           EmailCollectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 2:
-            view = AnyView(DOBVerificationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            DOBVerificationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 3:
-            view = AnyView(GenderSelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            GenderSelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 4:
-            view = AnyView(SexualitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            SexualitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 5:
-            view = AnyView(SexualityPreferenceView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+           SexualityPreferenceView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 6:
-            view = AnyView(HeightSelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            HeightSelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 7:
-            view = AnyView(DatingIntentionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            DatingIntentionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 8:
-            view = AnyView(ChildrenFormView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            ChildrenFormView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 9:
-            view = AnyView(FamilyPlansView(isAuthenticated: $isAuthenticated, currentStep: $currentStep, hasChildren: false))
+            FamilyPlansView(isAuthenticated: $isAuthenticated, currentStep: $currentStep, hasChildren: false)
         case 10:
-            view = AnyView(EducationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            EducationView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 11:
-            view = AnyView(ReligionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            ReligionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 12:
-            view = AnyView(EthnicitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            EthnicitySelectionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 13:
-            view = AnyView(DrinkingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            DrinkingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 14:
-            view = AnyView(SmokingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            SmokingHabitsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 15:
-            view = AnyView(PoliticalView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            PoliticalView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 16:
-            view = AnyView(DrugsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+          DrugsView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 17:
-            view = AnyView(LocationPermissionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+            LocationPermissionView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         case 18:
-            view = AnyView(ProfilePicturesView(isAuthenticated: $isAuthenticated))
+            ProfilePicturesView(isAuthenticated: $isAuthenticated)
         case 19:
-            view = AnyView(ProgressView("Completing setup..."))
+           ProgressView("Completing setup...")
         case 20:
-            view = AnyView(MainView(isAuthenticated: $isAuthenticated))
+           MainView(isAuthenticated: $isAuthenticated)
         default:
-            view = AnyView(UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep))
+         UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)
         }
-        print("Rendering view for step \(currentStep)")
-        return view
     }
 }

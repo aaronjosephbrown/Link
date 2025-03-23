@@ -10,6 +10,7 @@ import FirebaseAuth
 import FirebaseFirestore
 
 struct MainView: View {
+    @StateObject private var profileViewModel = ProfileViewModel()
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var userName = ""
@@ -73,6 +74,7 @@ struct MainView: View {
                             .environment(\.symbolVariants, selectedTab == "Profile" ? .fill : .none)
                     }
                     .tag("Profile")
+                    .environmentObject(profileViewModel)
             }
             .tint(Color("Gold"))
             .alert("Error", isPresented: $showError) {
@@ -82,6 +84,12 @@ struct MainView: View {
             }
             .onAppear {
                 loadUserProfile()
+                profileViewModel.calculateProfileCompletion()
+            }
+            .onChange(of: selectedTab) { _, newValue in
+                if newValue == "Profile" {
+                    profileViewModel.calculateProfileCompletion()
+                }
             }
         }
     }
