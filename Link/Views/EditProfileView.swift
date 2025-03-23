@@ -44,8 +44,11 @@ struct PhotoGridView: View {
                 )
             }
             
-            ForEach(selectedImages.count..<requiredPhotoCount, id: \.self) { _ in
-                AddPhotoButton(showPhotoPicker: $showPhotoPicker)
+            // Add Photo Buttons
+            if selectedImages.count < requiredPhotoCount {
+                ForEach(selectedImages.count..<requiredPhotoCount, id: \.self) { _ in
+                    AddPhotoButton(showPhotoPicker: $showPhotoPicker)
+                }
             }
         }
         .padding()
@@ -228,6 +231,8 @@ struct EditProfileView: View {
     private let storage = Storage.storage()
     private let db = Firestore.firestore()
     
+    var onProfileImagesUpdated: (() -> Void)?
+    
     var body: some View {
         BackgroundView {
             ScrollView(showsIndicators: false) {
@@ -249,7 +254,7 @@ struct EditProfileView: View {
                         isLoading: isLoading,
                         selectedImagesCount: selectedImages.count,
                         requiredPhotoCount: requiredPhotoCount,
-                        action: uploadPhotos
+                        action: saveChanges
                     )
                 }
                 .padding()
@@ -306,6 +311,10 @@ struct EditProfileView: View {
     private func loadExistingPhotos() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         
+        // Clear existing images first
+        selectedImages.removeAll()
+        existingPhotoUrls.removeAll()
+        
         // First try to load from local storage
         if let localUrls = ImageStorageManager.shared.loadImageUrls(for: userId) {
             existingPhotoUrls = localUrls
@@ -331,24 +340,35 @@ struct EditProfileView: View {
                 // Save URLs locally
                 ImageStorageManager.shared.saveImageUrls(photoUrls, for: userId)
                 
+                // Create a dispatch group to handle multiple image loads
+                let group = DispatchGroup()
+                var loadedImages: [UIImage] = []
+                
                 for (index, urlString) in photoUrls.enumerated() {
+                    group.enter()
                     if let url = URL(string: urlString) {
                         URLSession.shared.dataTask(with: url) { data, _, _ in
                             if let data = data, let image = UIImage(data: data) {
-                                DispatchQueue.main.async {
-                                    selectedImages.append(image)
-                                    // Save image locally
-                                    try? ImageStorageManager.shared.saveImage(image, for: userId, at: index)
-                                }
+                                loadedImages.append(image)
+                                // Save image locally
+                                try? ImageStorageManager.shared.saveImage(image, for: userId, at: index)
                             }
+                            group.leave()
                         }.resume()
+                    } else {
+                        group.leave()
                     }
+                }
+                
+                group.notify(queue: .main) {
+                    // Sort images by their original order
+                    selectedImages = loadedImages
                 }
             }
         }
     }
     
-    private func uploadPhotos() {
+    private func saveChanges() {
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "User not authenticated"
             showError = true
@@ -429,28 +449,26 @@ struct EditProfileView: View {
             if uploadedUrls.count == requiredPhotoCount {
                 // Save URLs locally
                 ImageStorageManager.shared.saveImageUrls(uploadedUrls, for: userId)
-                savePhotoUrlsToFirestore(urls: uploadedUrls, userId: userId)
+                
+                // Update photos in Firestore
+                db.collection("users").document(userId).updateData([
+                    "profilePictures": uploadedUrls
+                ]) { error in
+                    isLoading = false
+                    
+                    if let error = error {
+                        errorMessage = "Failed to save changes: \(error.localizedDescription)"
+                        showError = true
+                    } else {
+                        selectedTab = "Profile"
+                        onProfileImagesUpdated?()
+                        dismiss()
+                    }
+                }
             } else {
                 errorMessage = "Not all photos were uploaded successfully"
                 showError = true
                 isLoading = false
-            }
-        }
-        selectedTab = "Profile"
-    }
-    
-    private func savePhotoUrlsToFirestore(urls: [String], userId: String) {
-        db.collection("users").document(userId).updateData([
-            "profilePictures": urls
-        ]) { error in
-            isLoading = false
-            
-            if let error = error {
-                errorMessage = "Failed to save photo URLs: \(error.localizedDescription)"
-                showError = true
-            } else {
-                selectedTab = "Profile"
-                dismiss()
             }
         }
     }
