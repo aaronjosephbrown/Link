@@ -74,7 +74,7 @@ struct DietaryPreferencesView: View {
                                         .foregroundColor(Color("Gold"))
                                         .scaleEffect(dietaryNumberScale)
                                         .opacity(dietaryNumberOpacity)
-                                        .onChange(of: dietaryImportance) { _ in
+                                        .onChange(of: dietaryImportance) { _ , _ in
                                             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                                 dietaryNumberScale = 1.3
                                                 dietaryNumberOpacity = 0.7

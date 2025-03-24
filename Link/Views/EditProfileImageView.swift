@@ -290,7 +290,7 @@ struct EditProfileImageView: View {
         ImageStorageManager.shared.deleteAllImages(for: userId)
         
         for urlString in existingPhotoUrls {
-            if let url = URL(string: urlString) {
+            if URL(string: urlString) != nil {
                 let storageRef = storage.reference(forURL: urlString)
                 storageRef.delete { error in
                     if let error = error {

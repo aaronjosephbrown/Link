@@ -75,7 +75,7 @@ struct AppearanceLifestyleView: View {
                                         .foregroundColor(Color("Gold"))
                                         .scaleEffect(heightNumberScale)
                                         .opacity(heightNumberOpacity)
-                                        .onChange(of: heightImportance) { _ in
+                                        .onChange(of: heightImportance) { _ , _ in
                                             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                                 heightNumberScale = 1.3
                                                 heightNumberOpacity = 0.7

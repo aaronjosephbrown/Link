@@ -93,22 +93,26 @@ struct ProfileView: View {
                             Circle()
                                 .stroke(Color.gray.opacity(0.2), lineWidth: 8)
                                 .frame(width: 120, height: 120)
+                                .padding(.bottom)
                             
                             Circle()
                                 .trim(from: 0, to: profileViewModel.profileCompletion)
                                 .stroke(Color("Gold"), lineWidth: 8)
                                 .frame(width: 120, height: 120)
                                 .rotationEffect(.degrees(-90))
+                                .padding(.bottom)
                             
                             if isLoadingImage {
                                 ProgressView()
                                     .frame(width: 110, height: 110)
+                                    .padding(.bottom)
                             } else if let localImage = localProfileImage {
                                 Image(uiImage: localImage)
                                     .resizable()
                                     .scaledToFill()
                                     .frame(width: 110, height: 110)
                                     .clipShape(Circle())
+                                    .padding(.bottom)
                             } else if let imageUrl = profileImageUrl {
                                 AsyncImage(url: URL(string: imageUrl)) { image in
                                     image
@@ -116,15 +120,18 @@ struct ProfileView: View {
                                         .scaledToFill()
                                         .frame(width: 110, height: 110)
                                         .clipShape(Circle())
+                                        .padding(.bottom)
                                 } placeholder: {
                                     Circle()
                                         .fill(Color.gray.opacity(0.2))
                                         .frame(width: 110, height: 110)
+                                        .padding(.bottom)
                                 }
                             } else {
                                 Circle()
                                     .fill(Color.gray.opacity(0.2))
                                     .frame(width: 110, height: 110)
+                                    .padding(.bottom)
                             }
                             
                             if profileViewModel.profileCompletion >= 1.0 {
@@ -139,6 +146,7 @@ struct ProfileView: View {
                                     .fontWeight(.bold)
                                     .foregroundColor(Color.accent)
                                     .offset(y: 70)
+                                    .padding([.top, .bottom], 30)
                             }
                         }
                         
@@ -1035,5 +1043,8 @@ struct SettingsView: View {
 }
 
 #Preview {
-    ProfileView(userName: .constant("Preview User"), isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
+    NavigationStack {
+        ProfileView(userName: .constant("Preview User"), isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
+            .environmentObject(ProfileViewModel())
+    }
 } 
