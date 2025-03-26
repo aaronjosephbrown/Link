@@ -23,6 +23,8 @@ enum SignupProgress: String {
     case drugsComplete
     case locationComplete
     case photosComplete
+    case bioComplete
+    case occupationComplete
     case complete
 }
 
@@ -145,8 +147,12 @@ class AppViewModel: ObservableObject {
             return 18
         case .photosComplete:
             return 19
-        case .complete:
+        case .bioComplete:
             return 20
+        case .occupationComplete:
+            return 21
+        case .complete:
+            return 22
         @unknown default:
             return 0
         }

@@ -84,11 +84,11 @@ struct MainView: View {
             }
             .onAppear {
                 loadUserProfile()
-                profileViewModel.calculateProfileCompletion()
+                profileViewModel.updateProfileCompletion()
             }
             .onChange(of: selectedTab) { _, newValue in
                 if newValue == "Profile" {
-                    profileViewModel.calculateProfileCompletion()
+                    profileViewModel.updateProfileCompletion()
                 }
             }
         }

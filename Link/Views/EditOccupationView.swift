@@ -2,24 +2,16 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
-struct EditDrugsView: View {
+struct EditOccupationView: View {
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
-    @State private var selectedDrugs: String?
+    @State private var occupation: String = ""
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
     @Environment(\.dismiss) private var dismiss
     
     private let db = Firestore.firestore()
-    
-    private let drugsOptions = [
-        "Never",
-        "Rarely",
-        "Socially",
-        "Regularly",
-        "Prefer not to say"
-    ]
     
     var body: some View {
         BackgroundView {
@@ -35,37 +27,29 @@ struct EditDrugsView: View {
                                     .foregroundColor(Color("Gold"))
                             }
                         }
-                        Image(systemName: "pills.fill")
+                        Image(systemName: "briefcase.fill")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)
-                        Text("Edit Drug Use")
+                        Text("Edit Occupation")
                             .font(.custom("Lora-Regular", size: 19))
                             .foregroundColor(Color.accent)
                     }
                     .padding(.top, 40)
                     
-                    // Drugs options
-                    VStack(spacing: 12) {
-                        ForEach(drugsOptions, id: \.self) { option in
-                            Button(action: { selectedDrugs = option }) {
-                                HStack {
-                                    Text(option)
-                                        .font(.custom("Lora-Regular", size: 17))
-                                        .foregroundColor(Color.accent)
-                                    Spacer()
-                                    if selectedDrugs == option {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(Color("Gold"))
-                                    }
-                                }
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedDrugs == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
-                                )
-                            }
-                        }
+                    // Occupation text field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("What do you do?")
+                            .font(.custom("Lora-Regular", size: 17))
+                            .foregroundColor(Color.accent)
+                        
+                        TextField("Enter your occupation", text: $occupation)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
+                            )
                     }
                     .padding(.horizontal)
                     
@@ -85,65 +69,45 @@ struct EditDrugsView: View {
                                     .padding(.vertical, 16)
                                     .background(
                                         RoundedRectangle(cornerRadius: 16)
-                                            .fill(selectedDrugs != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                            .fill(!occupation.isEmpty ? Color("Gold") : Color.gray.opacity(0.3))
                                     )
-                                    .animation(.easeInOut(duration: 0.2), value: selectedDrugs != nil)
+                                    .animation(.easeInOut(duration: 0.2), value: !occupation.isEmpty)
                             }
-                            .disabled(selectedDrugs == nil)
+                            .disabled(occupation.isEmpty)
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.bottom, 32)
                 }
-                .padding()
-                .navigationBarBackButtonHidden(false)
-                .navigationBarItems(leading: 
-                    Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
-                    }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                                .foregroundColor(Color("Gold"))
-                            Text("Back")
-                                .foregroundColor(Color("Gold"))
-                        }
-                    }
-                )
-                .alert("Error", isPresented: $showError) {
-                    Button("OK", role: .cancel) {}
-                } message: {
-                    Text(errorMessage)
-                }
-                .onAppear {
-                    loadUserDrugs()
-                }
+            }
+            .alert("Error", isPresented: $showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
+            }
+            .onAppear {
+                loadUserOccupation()
             }
         }
     }
     
-    private func loadUserDrugs() {
+    private func loadUserOccupation() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         
         db.collection("users").document(userId).getDocument { document, error in
             if let error = error {
-                print("Error loading drugs preference: \(error.localizedDescription)")
+                print("Error loading occupation: \(error.localizedDescription)")
                 return
             }
             
             if let document = document {
-                let data = document.data() ?? [:]
-                if let drugs = data["drugUse"] as? String {
-                    DispatchQueue.main.async {
-                        selectedDrugs = drugs
-                    }
+                DispatchQueue.main.async {
+                    occupation = document.data()?["occupation"] as? String ?? ""
                 }
             }
         }
     }
     
     private func saveChanges() {
-        guard let drugs = selectedDrugs else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
             showError = true
@@ -153,12 +117,12 @@ struct EditDrugsView: View {
         isLoading = true
         
         db.collection("users").document(userId).updateData([
-            "drugUse": drugs
+            "occupation": occupation
         ]) { error in
             isLoading = false
             
             if let error = error {
-                errorMessage = "Error saving drugs preference: \(error.localizedDescription)"
+                errorMessage = "Error saving occupation: \(error.localizedDescription)"
                 showError = true
                 return
             }
@@ -171,6 +135,6 @@ struct EditDrugsView: View {
 
 #Preview {
     NavigationStack {
-        EditDrugsView(isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
+        EditOccupationView(isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
     }
 } 

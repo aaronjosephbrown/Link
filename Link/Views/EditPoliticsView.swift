@@ -131,10 +131,12 @@ struct EditPoliticsView: View {
                 return
             }
             
-            if let document = document,
-               let politics = document.data()?["politics"] as? String {
-                DispatchQueue.main.async {
-                    selectedPolitics = politics
+            if let document = document {
+                let data = document.data() ?? [:]
+                if let politics = data["politicalViews"] as? String {
+                    DispatchQueue.main.async {
+                        selectedPolitics = politics
+                    }
                 }
             }
         }
@@ -151,7 +153,7 @@ struct EditPoliticsView: View {
         isLoading = true
         
         db.collection("users").document(userId).updateData([
-            "politics": politics
+            "politicalViews": politics
         ]) { error in
             isLoading = false
             

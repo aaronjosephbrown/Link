@@ -35,6 +35,7 @@ struct PhoneVerificationView: View {
                         .font(.custom("GreatVibes-Regular", size: 50))
                         .foregroundColor(.accent)
                         .padding(.top)
+                        .frame(width: 100)
                     
                     Text("Enter your phone number to get started")
                         .font(.custom("Lora-Regular", size: 19))

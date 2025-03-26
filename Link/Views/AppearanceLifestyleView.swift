@@ -6,6 +6,7 @@ struct AppearanceLifestyleView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var profileViewModel: ProfileViewModel
     @State private var bodyType = ""
+    @State private var heightPreference = ""
     @State private var heightImportance: Double = 5
     @State private var preferredPartnerHeight = ""
     @State private var heightNumberScale: CGFloat = 1.0
@@ -54,6 +55,26 @@ struct AppearanceLifestyleView: View {
                                                     .padding(.vertical, 8)
                                                     .background(bodyType == type ? Color("Gold") : Color("Gold").opacity(0.1))
                                                     .foregroundColor(bodyType == type ? .white : Color.accent)
+                                                    .cornerRadius(20)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Height Preference
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Your height preference")
+                                    .foregroundColor(Color.accent)
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 12) {
+                                        ForEach(["Short", "Average", "Tall"], id: \.self) { preference in
+                                            Button(action: { heightPreference = preference }) {
+                                                Text(preference)
+                                                    .padding(.horizontal, 16)
+                                                    .padding(.vertical, 8)
+                                                    .background(heightPreference == preference ? Color("Gold") : Color("Gold").opacity(0.1))
+                                                    .foregroundColor(heightPreference == preference ? .white : Color.accent)
                                                     .cornerRadius(20)
                                             }
                                         }
@@ -152,6 +173,7 @@ struct AppearanceLifestyleView: View {
                 let data = document.data() ?? [:]
                 
                 bodyType = data["bodyType"] as? String ?? ""
+                heightPreference = data["heightPreference"] as? String ?? ""
                 heightImportance = data["heightImportance"] as? Double ?? 5
                 preferredPartnerHeight = data["preferredPartnerHeight"] as? String ?? ""
             }
@@ -166,6 +188,7 @@ struct AppearanceLifestyleView: View {
         
         let data: [String: Any] = [
             "bodyType": bodyType,
+            "heightPreference": heightPreference,
             "heightImportance": heightImportance,
             "preferredPartnerHeight": preferredPartnerHeight
         ]

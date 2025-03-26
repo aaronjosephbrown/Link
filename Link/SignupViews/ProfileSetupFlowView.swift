@@ -81,8 +81,12 @@ struct ProfileSetupFlowView: View {
             step = 18
         case .photosComplete:
             step = 19
-        case .complete:
+        case .bioComplete:
             step = 20
+        case .occupationComplete:
+            step = 21
+        case .complete:
+            step = 22
         @unknown default:
             step = 0
         }
@@ -133,8 +137,12 @@ struct ProfileSetupFlowView: View {
         case 18:
             ProfilePicturesView(isAuthenticated: $isAuthenticated)
         case 19:
-           ProgressView("Completing setup...")
+            BioSetupView(isAuthenticated: $isAuthenticated, selectedTab: .constant("Profile"))
         case 20:
+            FinishProfileSetupView()
+        case 21:
+           ProgressView("Completing setup...")
+        case 22:
            MainView(isAuthenticated: $isAuthenticated)
         default:
          UserProfileSetupView(isAuthenticated: $isAuthenticated, currentStep: $currentStep)

@@ -2,25 +2,16 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
-struct EditSexualityPreferenceView: View {
+struct EditBioView: View {
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
-    @State private var selectedPreference: String?
+    @State private var bio: String = ""
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
     @Environment(\.dismiss) private var dismiss
     
     private let db = Firestore.firestore()
-    
-    private let preferenceOptions = [
-        "Men",
-        "Women",
-        "Both",
-        "Non-binary",
-        "All",
-        "Prefer not to say"
-    ]
     
     var body: some View {
         BackgroundView {
@@ -36,36 +27,36 @@ struct EditSexualityPreferenceView: View {
                                     .foregroundColor(Color("Gold"))
                             }
                         }
-                        Image(systemName: "heart.text.square")
+                        Image(systemName: "text.quote")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)
-                        Text("Sexuality Preference")
+                        Text("Edit Bio")
                             .font(.custom("Lora-Regular", size: 19))
                             .foregroundColor(Color.accent)
                     }
                     .padding(.top, 40)
                     
-                    // Preference options
-                    VStack(spacing: 12) {
-                        ForEach(preferenceOptions, id: \.self) { option in
-                            Button(action: { selectedPreference = option }) {
-                                HStack {
-                                    Text(option)
-                                        .font(.custom("Lora-Regular", size: 17))
-                                        .foregroundColor(Color.accent)
-                                    Spacer()
-                                    if selectedPreference == option {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(Color("Gold"))
-                                    }
-                                }
-                                .padding()
+                    // Bio text editor
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Tell us about yourself")
+                            .font(.custom("Lora-Regular", size: 17))
+                            .foregroundColor(Color.accent)
+                        
+                        ZStack(alignment: .topLeading) {
+                            if bio.isEmpty {
+                                Text("Write something about yourself...")
+                                    .foregroundColor(.gray)
+                                    .padding(.leading, 12)
+                                    .padding(.top, 16)
+                            }
+                            TextEditor(text: $bio)
+                                .frame(height: 200)
+                                .padding(8)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedPreference == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                        .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
                                 )
-                            }
                         }
                     }
                     .padding(.horizontal)
@@ -86,63 +77,47 @@ struct EditSexualityPreferenceView: View {
                                     .padding(.vertical, 16)
                                     .background(
                                         RoundedRectangle(cornerRadius: 16)
-                                            .fill(selectedPreference != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                            .fill(!bio.isEmpty ? Color("Gold") : Color.gray.opacity(0.3))
                                     )
-                                    .animation(.easeInOut(duration: 0.2), value: selectedPreference != nil)
+                                    .animation(.easeInOut(duration: 0.2), value: !bio.isEmpty)
                             }
-                            .disabled(selectedPreference == nil)
+                            .disabled(bio.isEmpty)
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.bottom, 32)
-                }
-                .padding()
-                .navigationBarBackButtonHidden(false)
-                .navigationBarItems(leading: 
-                    Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
-                    }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                                .foregroundColor(Color("Gold"))
-                            Text("Back")
-                                .foregroundColor(Color("Gold"))
-                        }
-                    }
-                )
-                .alert("Error", isPresented: $showError) {
-                    Button("OK", role: .cancel) {}
-                } message: {
-                    Text(errorMessage)
-                }
-                .onAppear {
-                    loadUserPreference()
+                    .padding(.bottom, 20)
                 }
             }
+            .alert("Error", isPresented: $showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
+            }
+            .onAppear {
+                loadUserBio()
+            }
         }
+        .interactiveDismissDisabled()
     }
     
-    private func loadUserPreference() {
+    private func loadUserBio() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         
         db.collection("users").document(userId).getDocument { document, error in
             if let error = error {
-                print("Error loading sexuality preference: \(error.localizedDescription)")
+                print("Error loading bio: \(error.localizedDescription)")
                 return
             }
             
-            if let document = document,
-               let preference = document.data()?["sexualityPreference"] as? String {
+            if let document = document {
                 DispatchQueue.main.async {
-                    selectedPreference = preference
+                    bio = document.data()?["bio"] as? String ?? ""
                 }
             }
         }
     }
     
     private func saveChanges() {
-        guard let preference = selectedPreference else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
             showError = true
@@ -151,25 +126,31 @@ struct EditSexualityPreferenceView: View {
         
         isLoading = true
         
+        // First save the bio
         db.collection("users").document(userId).updateData([
-            "sexualityPreference": preference
+            "bio": bio
         ]) { error in
-            isLoading = false
-            
             if let error = error {
-                errorMessage = "Error saving sexuality preference: \(error.localizedDescription)"
-                showError = true
+                DispatchQueue.main.async {
+                    isLoading = false
+                    errorMessage = "Error saving bio: \(error.localizedDescription)"
+                    showError = true
+                }
                 return
             }
             
-            selectedTab = "Profile"
-            dismiss()
+            // Only dismiss after successful save
+            DispatchQueue.main.async {
+                isLoading = false
+                selectedTab = "Profile"
+                dismiss()
+            }
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        EditSexualityPreferenceView(isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
+        EditBioView(isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
     }
 } 

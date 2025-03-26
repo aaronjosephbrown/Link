@@ -160,10 +160,10 @@ struct ProfileView: View {
                                 .foregroundColor(Color("Gold"))
                         }
                         
-                        Text("Incomplete profile")
-                            .foregroundColor(Color.accent.opacity(0.7))
-                        
                         if !profileSetupCompleted {
+                            Text("Incomplete profile")
+                                .foregroundColor(Color.accent.opacity(0.7))
+                            
                             // Finish Profile Setup Button
                             Button(action: { showFinishProfileSetup = true }) {
                                 Text("Finish Profile Setup")
@@ -622,7 +622,12 @@ struct ProfileView: View {
                 }
                 .onAppear {
                     loadProfilePicture()
-                    checkProfileCompletion()
+                    Task {
+                        // Only fetch from API if we need to refresh
+                        if profileViewModel.shouldRefreshProfile() {
+                            await checkProfileCompletion()
+                        }
+                    }
                 }
             }
             .fullScreenCover(isPresented: $showEditProfileImagesFullScreen) {
@@ -738,51 +743,66 @@ struct ProfileView: View {
         }
     }
     
-    private func checkProfileCompletion() {
+    private func checkProfileCompletion() async {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         
-        db.collection("users").document(userId).getDocument { document, error in
-            if let error = error {
-                print("Error checking profile completion: \(error.localizedDescription)")
-                return
+        // Replace with your actual API endpoint
+        guard let url = URL(string: "https://helloworld-qxqzvcg5za-uc.a.run.app/users/\(userId)") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Add authorization header if needed
+        if let idToken = try? await Auth.auth().currentUser?.getIDToken() {
+            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+        }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // Log the response for debugging
+            if let httpResponse = response as? HTTPURLResponse {
+                print("HTTP Status Code: \(httpResponse.statusCode)")
+                print("Response Headers: \(httpResponse.allHeaderFields)")
             }
             
-            if let document = document {
-                let data = document.data() ?? [:]
-                profileSetupCompleted = data["profileSetupCompleted"] as? Bool ?? false
+            // Try to print the response data as string for debugging
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Response Data: \(responseString)")
+            }
+            
+            // Only try to decode if we have a successful response
+            if let httpResponse = response as? HTTPURLResponse,
+               (200...299).contains(httpResponse.statusCode) {
+                let response = try JSONDecoder().decode(ProfileCompletionResponse.self, from: data)
                 
-                // Calculate profile completion percentage
-                var completedFields = 0
-                var totalFields = 0
-                
-                // Profile Pictures (6 required)
-                if let photos = data["profilePictures"] as? [String] {
-                    completedFields += min(photos.count, 6)
-                    totalFields += 6
+                // Update UI on main thread
+                await MainActor.run {
+                    self.profileViewModel.updateProfileCompletion(
+                        completion: response.profileCompletion,
+                        incompleteFields: response.incompleteFields
+                    )
+                    self.profileSetupCompleted = response.profileCompletion >= 1.0
                 }
-                
-                // Profile Setup Fields
-                let setupFields = [
-                    "heightPreference", "bodyType", "preferredPartnerHeight",
-                    "activityLevel", "favoriteActivities", "diet",
-                    "hasPets", "petTypes", "animalPreference"
-                ]
-                
-                for field in setupFields {
-                    if let value = data[field] {
-                        if let array = value as? [Any] {
-                            if !array.isEmpty {
-                                completedFields += 1
-                            }
-                        } else if let string = value as? String, !string.isEmpty {
-                            completedFields += 1
-                        }
-                    }
-                    totalFields += 1
+            } else {
+                print("Received non-200 response")
+            }
+        } catch {
+            print("Error fetching profile completion: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .dataCorrupted(let context):
+                    print("Data corrupted: \(context)")
+                case .keyNotFound(let key, let context):
+                    print("Key not found: \(key), context: \(context)")
+                case .typeMismatch(let type, let context):
+                    print("Type mismatch: \(type), context: \(context)")
+                case .valueNotFound(let type, let context):
+                    print("Value not found: \(type), context: \(context)")
+                @unknown default:
+                    print("Unknown decoding error")
                 }
-                
-                let newCompletion = Double(completedFields) / Double(totalFields)
-                profileViewModel.profileCompletion = newCompletion
             }
         }
     }

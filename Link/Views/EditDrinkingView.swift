@@ -130,10 +130,12 @@ struct EditDrinkingView: View {
                 return
             }
             
-            if let document = document,
-               let drinking = document.data()?["drinking"] as? String {
-                DispatchQueue.main.async {
-                    selectedDrinking = drinking
+            if let document = document {
+                let data = document.data() ?? [:]
+                if let drinking = data["drinkingHabit"] as? String {
+                    DispatchQueue.main.async {
+                        selectedDrinking = drinking
+                    }
                 }
             }
         }
@@ -150,7 +152,7 @@ struct EditDrinkingView: View {
         isLoading = true
         
         db.collection("users").document(userId).updateData([
-            "drinking": drinking
+            "drinkingHabit": drinking
         ]) { error in
             isLoading = false
             
