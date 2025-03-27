@@ -5,21 +5,23 @@ import FirebaseAuth
 struct EditPoliticsView: View {
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
-    @State private var selectedPolitics: String?
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var politicalViews = ""
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @Environment(\.dismiss) private var dismiss
+    var isProfileSetup: Bool = false
     
-    private let db = Firestore.firestore()
-    
-    private let politicsOptions = [
+    private let politicalOptions = [
         "Liberal",
         "Moderate",
         "Conservative",
+        "Not Political",
         "Other",
         "Prefer not to say"
     ]
+    private let db = Firestore.firestore()
     
     var body: some View {
         BackgroundView {
@@ -27,12 +29,14 @@ struct EditPoliticsView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
+                        if !isProfileSetup {
+                            HStack {
+                                Spacer()
+                                Button(action: { dismiss() }) {
+                                    Image(systemName: "xmark")
+                                        .font(.title2)
+                                        .foregroundColor(Color("Gold"))
+                                }
                             }
                         }
                         Image(systemName: "building.columns.fill")
@@ -47,22 +51,25 @@ struct EditPoliticsView: View {
                     
                     // Politics options
                     VStack(spacing: 12) {
-                        ForEach(politicsOptions, id: \.self) { option in
-                            Button(action: { selectedPolitics = option }) {
+                        ForEach(politicalOptions, id: \.self) { option in
+                            Button(action: { politicalViews = option }) {
                                 HStack {
                                     Text(option)
                                         .font(.custom("Lora-Regular", size: 17))
                                         .foregroundColor(Color.accent)
                                     Spacer()
-                                    if selectedPolitics == option {
+                                    if politicalViews == option {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(Color("Gold"))
+                                            .font(.system(size: 20))
                                     }
                                 }
-                                .padding()
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedPolitics == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                        .stroke(politicalViews == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
                                 )
                             }
                         }
@@ -71,25 +78,31 @@ struct EditPoliticsView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Save/Next button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
+                            Button(action: {
+                                if isProfileSetup {
+                                    saveAndContinue()
+                                } else {
+                                    saveChanges()
+                                }
+                            }) {
+                                Text(isProfileSetup ? "Next" : "Save Changes")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 16)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(selectedPolitics != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(politicalViews != "" ? Color("Gold") : Color.gray.opacity(0.3))
                                     )
-                                    .animation(.easeInOut(duration: 0.2), value: selectedPolitics != nil)
+                                    .animation(.easeInOut(duration: 0.2), value: politicalViews != "")
                             }
-                            .disabled(selectedPolitics == nil)
+                            .disabled(politicalViews == "")
                         }
                     }
                     .padding(.horizontal)
@@ -99,8 +112,12 @@ struct EditPoliticsView: View {
                 .navigationBarBackButtonHidden(false)
                 .navigationBarItems(leading: 
                     Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
+                        if isProfileSetup {
+                            dismiss()
+                        } else {
+                            selectedTab = "Profile"
+                            dismiss()
+                        }
                     }) {
                         HStack {
                             Image(systemName: "chevron.left")
@@ -135,7 +152,7 @@ struct EditPoliticsView: View {
                 let data = document.data() ?? [:]
                 if let politics = data["politicalViews"] as? String {
                     DispatchQueue.main.async {
-                        selectedPolitics = politics
+                        politicalViews = politics
                     }
                 }
             }
@@ -143,7 +160,7 @@ struct EditPoliticsView: View {
     }
     
     private func saveChanges() {
-        guard let politics = selectedPolitics else { return }
+        guard !politicalViews.isEmpty else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
             showError = true
@@ -152,19 +169,56 @@ struct EditPoliticsView: View {
         
         isLoading = true
         
-        db.collection("users").document(userId).updateData([
-            "politicalViews": politics
-        ]) { error in
-            isLoading = false
-            
+        let data: [String: Any] = [
+            "politicalViews": politicalViews
+        ]
+        
+        db.collection("users").document(userId).updateData(data) { error in
             if let error = error {
-                errorMessage = "Error saving politics preference: \(error.localizedDescription)"
-                showError = true
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = "Error saving politics preference: \(error.localizedDescription)"
+                    self.showError = true
+                }
                 return
             }
             
-            selectedTab = "Profile"
-            dismiss()
+            DispatchQueue.main.async {
+                self.isLoading = false
+                self.selectedTab = "Profile"
+                self.dismiss()
+            }
+        }
+    }
+    
+    private func saveAndContinue() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        // Prevent multiple taps while saving
+        guard !isLoading else { return }
+        isLoading = true
+        
+        let data: [String: Any] = [
+            "politicalViews": politicalViews
+        ]
+        
+        db.collection("users").document(userId).updateData(data) { error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    print("Error saving political views: \(error.localizedDescription)")
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if self.isProfileSetup {
+                    self.profileViewModel.shouldAdvanceToNextStep = true
+                } else {
+                    self.dismiss()
+                }
+            }
         }
     }
 }

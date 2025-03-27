@@ -1,16 +1,16 @@
 import SwiftUI
-import FirebaseFirestore
 import FirebaseAuth
+import FirebaseFirestore
 
-struct EditFamilyPlansView: View {
+struct FamilyPlansView: View {
     @Binding var isAuthenticated: Bool
-    @Binding var selectedTab: String
+    @Binding var currentStep: Int
+    @EnvironmentObject var appViewModel: AppViewModel
+    let hasChildren: Bool
     @State private var selectedPlan: String?
-    @State private var hasChildren = false
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @Environment(\.dismiss) private var dismiss
     
     private let db = Firestore.firestore()
     
@@ -27,25 +27,21 @@ struct EditFamilyPlansView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
-                            }
-                        }
-                        Image(systemName: "person.2.fill")
+                        Image(systemName: "house.circle.fill")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)
-                        Text("Edit Family Plans")
+                            .symbolEffect(.bounce, options: .repeating)
+                        Text(hasChildren ? "Do you want more children?" : "Do you want children in the future?")
                             .font(.custom("Lora-Regular", size: 19))
                             .foregroundColor(Color.accent)
                     }
                     .padding(.top, 40)
                     
-                    // Plans options
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep)
+                    
+                    // Family plan options
                     VStack(spacing: 12) {
                         ForEach(familyPlanOptions, id: \.self) { option in
                             Button(action: { selectedPlan = option }) {
@@ -71,14 +67,14 @@ struct EditFamilyPlansView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Continue button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
+                            Button(action: saveAndContinue) {
+                                Text("Continue")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -96,51 +92,17 @@ struct EditFamilyPlansView: View {
                     .padding(.bottom, 32)
                 }
                 .padding()
-                .navigationBarBackButtonHidden(false)
-                .navigationBarItems(leading: 
-                    Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
-                    }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                                .foregroundColor(Color("Gold"))
-                            Text("Back")
-                                .foregroundColor(Color("Gold"))
-                        }
-                    }
-                )
+                .navigationBarBackButtonHidden(true)
                 .alert("Error", isPresented: $showError) {
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(errorMessage)
                 }
-                .onAppear {
-                    loadUserFamilyPlans()
-                }
             }
         }
     }
     
-    private func loadUserFamilyPlans() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        
-        db.collection("users").document(userId).getDocument { document, error in
-            if let error = error {
-                print("Error loading family plans: \(error.localizedDescription)")
-                return
-            }
-            
-            if let document = document {
-                DispatchQueue.main.async {
-                    selectedPlan = document.data()?["familyPlans"] as? String
-                    hasChildren = document.data()?["hasChildren"] as? Bool ?? false
-                }
-            }
-        }
-    }
-    
-    private func saveChanges() {
+    private func saveAndContinue() {
         guard let plan = selectedPlan else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
@@ -150,9 +112,12 @@ struct EditFamilyPlansView: View {
         
         isLoading = true
         
-        db.collection("users").document(userId).updateData([
-            "familyPlans": plan
-        ]) { error in
+        let userData: [String: Any] = [
+            "familyPlans": plan,
+            "setupProgress": SignupProgress.familyPlansComplete.rawValue
+        ]
+        
+        db.collection("users").document(userId).updateData(userData) { error in
             isLoading = false
             
             if let error = error {
@@ -161,14 +126,35 @@ struct EditFamilyPlansView: View {
                 return
             }
             
-            selectedTab = "Profile"
-            dismiss()
+            withAnimation {
+                appViewModel.updateProgress(.familyPlansComplete)
+                currentStep = 10
+            }
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        EditFamilyPlansView(isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
+        FamilyPlansView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(9),
+            hasChildren: false
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        FamilyPlansView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(9),
+            hasChildren: false
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

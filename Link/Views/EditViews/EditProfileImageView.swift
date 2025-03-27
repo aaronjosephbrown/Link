@@ -8,23 +8,30 @@ struct EditProfileImageView: View {
     @Binding var userName: String
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
-    @State private var selectedItems: [PhotosPickerItem] = []
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
+    @EnvironmentObject private var appViewModel: AppViewModel
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedImages: [UIImage] = []
+    @State private var showImagePicker = false
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var showPhotoPicker = false
+    @State private var showCamera = false
+    @State private var showPhotoLibrary = false
+    @State private var showActionSheet = false
+    @State private var currentImageIndex = 0
+    var isProfileSetup: Bool = false
+    var onProfileImagesUpdated: (() -> Void)?
+    
+    @State private var selectedItems: [PhotosPickerItem] = []
     @State private var draggedItem: UIImage?
     @State private var uploadTasks: [StorageUploadTask] = []
     @State private var existingPhotoUrls: [String] = []
-    @Environment(\.dismiss) private var dismiss
     @Namespace private var namespace
     
     private let requiredPhotoCount = 6
     private let storage = Storage.storage()
     private let db = Firestore.firestore()
-    
-    var onProfileImagesUpdated: (() -> Void)?
     
     var body: some View {
         BackgroundView {
@@ -32,12 +39,14 @@ struct EditProfileImageView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
+                        if !isProfileSetup {
+                            HStack {
+                                Spacer()
+                                Button(action: { dismiss() }) {
+                                    Image(systemName: "xmark")
+                                        .font(.title2)
+                                        .foregroundColor(Color("Gold"))
+                                }
                             }
                         }
                         Image(systemName: "photo.stack.fill")
@@ -95,7 +104,7 @@ struct EditProfileImageView: View {
                             ForEach(selectedImages.count..<requiredPhotoCount, id: \.self) { _ in
                                 Button(action: {
                                     withAnimation {
-                                        showPhotoPicker = true
+                                        showImagePicker = true
                                     }
                                 }) {
                                     RoundedRectangle(cornerRadius: 10)
@@ -128,17 +137,19 @@ struct EditProfileImageView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Save/Next button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else if selectedImages.count == requiredPhotoCount {
-                            Button(action: saveChanges) {
+                            Button(action: {
+                                saveAndContinue()
+                            }) {
                                 HStack {
-                                    Text("Save Changes")
+                                    Text(isProfileSetup ? "Next" : "Save Changes")
                                         .font(.system(size: 17, weight: .semibold))
-                                    Image(systemName: "checkmark")
+                                    Image(systemName: isProfileSetup ? "arrow.right" : "checkmark")
                                         .font(.system(size: 17, weight: .semibold))
                                 }
                                 .foregroundColor(.white)
@@ -159,8 +170,12 @@ struct EditProfileImageView: View {
             .navigationBarBackButtonHidden(false)
             .navigationBarItems(leading: 
                 Button(action: {
-                    selectedTab = "Profile"
-                    dismiss()
+                    if isProfileSetup {
+                        dismiss()
+                    } else {
+                        selectedTab = "Profile"
+                        dismiss()
+                    }
                 }) {
                     HStack {
                         Image(systemName: "chevron.left")
@@ -170,7 +185,7 @@ struct EditProfileImageView: View {
                     }
                 }
             )
-            .photosPicker(isPresented: $showPhotoPicker,
+            .photosPicker(isPresented: $showImagePicker,
                          selection: $selectedItems,
                          maxSelectionCount: requiredPhotoCount - selectedImages.count,
                          matching: .images,
@@ -178,11 +193,17 @@ struct EditProfileImageView: View {
             .tint(Color("Gold"))
             .onChange(of: selectedItems) { _ , newItems in
                 Task {
-                    showPhotoPicker = false
+                    showImagePicker = false
                     for item in newItems {
-                        if let data = try? await item.loadTransferable(type: Data.self),
-                           let image = UIImage(data: data) {
-                            selectedImages.append(image)
+                        do {
+                            if let data = try await item.loadTransferable(type: Data.self),
+                               let image = UIImage(data: data) {
+                                selectedImages.append(image)
+                            }
+                        } catch {
+                            print("Error loading image: \(error.localizedDescription)")
+                            errorMessage = "Error loading image: \(error.localizedDescription)"
+                            showError = true
                         }
                     }
                     selectedItems.removeAll()
@@ -246,101 +267,121 @@ struct EditProfileImageView: View {
                 let group = DispatchGroup()
                 var loadedImages: [UIImage] = []
                 
-                for (index, urlString) in photoUrls.enumerated() {
+                for url in photoUrls {
                     group.enter()
-                    if let url = URL(string: urlString) {
-                        URLSession.shared.dataTask(with: url) { data, _, _ in
-                            if let data = data, let image = UIImage(data: data) {
-                                loadedImages.append(image)
-                                // Save image locally
-                                try? ImageStorageManager.shared.saveImage(image, for: userId, at: index)
+                    storage.reference(forURL: url).downloadURL { url, error in
+                        defer { group.leave() }
+                        
+                        if let error = error {
+                            print("Error downloading image: \(error.localizedDescription)")
+                            return
+                        }
+                        
+                        guard let url = url else { return }
+                        
+                        URLSession.shared.dataTask(with: url) { data, response, error in
+                            if let error = error {
+                                print("Error loading image data: \(error.localizedDescription)")
+                                return
                             }
-                            group.leave()
+                            
+                            guard let data = data,
+                                  let image = UIImage(data: data) else { return }
+                            
+                            DispatchQueue.main.async {
+                                loadedImages.append(image)
+                                if loadedImages.count == photoUrls.count {
+                                    selectedImages = loadedImages
+                                }
+                            }
                         }.resume()
-                    } else {
-                        group.leave()
                     }
-                }
-                
-                group.notify(queue: .main) {
-                    // Sort images by their original order
-                    selectedImages = loadedImages
                 }
             }
         }
     }
     
-    private func saveChanges() {
-        guard let userId = Auth.auth().currentUser?.uid else {
-            errorMessage = "User not authenticated"
+    private func saveAndContinue() {
+        guard !selectedImages.isEmpty else {
+            errorMessage = "Please select at least one image"
             showError = true
             return
         }
         
+        guard !isLoading else { return }
         isLoading = true
-        let group = DispatchGroup()
-        var uploadedUrls: [String] = []
         
-        for task in uploadTasks {
-            task.cancel()
-        }
-        uploadTasks.removeAll()
-        
-        // Delete existing local images
-        ImageStorageManager.shared.deleteAllImages(for: userId)
-        
-        for urlString in existingPhotoUrls {
-            if URL(string: urlString) != nil {
-                let storageRef = storage.reference(forURL: urlString)
-                storageRef.delete { error in
-                    if let error = error {
-                        print("Error deleting photo: \(error.localizedDescription)")
+        Task {
+            do {
+                try await saveImages()
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if self.isProfileSetup {
+                        self.profileViewModel.shouldAdvanceToNextStep = true
+                        self.appViewModel.updateProgress(.photosComplete)
+                    } else {
+                        self.onProfileImagesUpdated?()
+                        self.dismiss()
                     }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                }
+            }
+        }
+    }
+    
+    private func saveImages() async throws {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            errorMessage = "No authenticated user found"
+            showError = true
+            return
+        }
+        
+        // Delete existing photos from storage
+        for url in existingPhotoUrls {
+            storage.reference(forURL: url).delete { error in
+                if let error = error {
+                    print("Error deleting old photo: \(error.localizedDescription)")
                 }
             }
         }
         
+        // Upload new photos
+        var newPhotoUrls: [String] = []
+        let group = DispatchGroup()
+        
         for (index, image) in selectedImages.enumerated() {
             group.enter()
-            
-            // Save image locally
-            do {
-                try ImageStorageManager.shared.saveImage(image, for: userId, at: index)
-            } catch {
-                print("Error saving image locally: \(error.localizedDescription)")
-            }
             
             guard let imageData = image.jpegData(compressionQuality: 0.7) else {
                 group.leave()
                 continue
             }
             
-            let filename = "\(userId)_\(index)_\(UUID().uuidString).jpg"
-            let storageRef = storage.reference().child("profile_pictures/\(userId)/\(filename)")
-            
-            let metadata = StorageMetadata()
-            metadata.contentType = "image/jpeg"
-            
-            let uploadTask = storageRef.putData(imageData, metadata: metadata) { _, error in
+            let photoRef = storage.reference().child("users/\(userId)/photos/\(index).jpg")
+            let uploadTask = photoRef.putData(imageData, metadata: nil) { metadata, error in
+                defer { group.leave() }
+                
                 if let error = error {
-                    errorMessage = "Upload failed: \(error.localizedDescription)"
+                    errorMessage = "Error uploading photo: \(error.localizedDescription)"
                     showError = true
-                    group.leave()
                     return
                 }
                 
-                storageRef.downloadURL { url, error in
+                photoRef.downloadURL { url, error in
                     if let error = error {
-                        errorMessage = "Failed to get download URL: \(error.localizedDescription)"
+                        errorMessage = "Error getting download URL: \(error.localizedDescription)"
                         showError = true
-                        group.leave()
                         return
                     }
                     
-                    if let urlString = url?.absoluteString {
-                        uploadedUrls.append(urlString)
+                    if let url = url {
+                        newPhotoUrls.append(url.absoluteString)
                     }
-                    group.leave()
                 }
             }
             
@@ -348,50 +389,36 @@ struct EditProfileImageView: View {
         }
         
         group.notify(queue: .main) {
-            if uploadedUrls.count == requiredPhotoCount {
-                // Save URLs locally
-                ImageStorageManager.shared.saveImageUrls(uploadedUrls, for: userId)
-                
-                // Update all data in Firestore
-                let profileData: [String: Any] = [
-                    "profilePictures": uploadedUrls,
-                    "name": userName,
-                    "bio": "",
-                    "location": "",
-                    "occupation": "",
-                    "interests": [],
-                    "heightPreference": "",
-                    "bodyType": "",
-                    "heightImportance": 5,
-                    "preferredPartnerHeight": "",
-                    "activityLevel": "",
-                    "favoriteActivities": [],
-                    "preferSimilarFitness": false,
-                    "diet": "",
-                    "dietaryImportance": 5,
-                    "dateDifferentDiet": false,
-                    "hasPets": "",
-                    "petTypes": [],
-                    "dateWithPets": false,
-                    "animalPreference": ""
-                ]
-                
-                db.collection("users").document(userId).updateData(profileData) { error in
+            if newPhotoUrls.count == requiredPhotoCount {
+                // Save URLs to Firestore
+                db.collection("users").document(userId).updateData([
+                    "profilePictures": newPhotoUrls
+                ]) { error in
                     isLoading = false
                     
                     if let error = error {
-                        errorMessage = "Failed to save changes: \(error.localizedDescription)"
+                        errorMessage = "Error saving photo URLs: \(error.localizedDescription)"
                         showError = true
-                    } else {
-                        selectedTab = "Profile"
-                        onProfileImagesUpdated?()
-                        dismiss()
+                        return
                     }
+                    
+                    // Save URLs locally
+                    ImageStorageManager.shared.saveImageUrls(newPhotoUrls, for: userId)
+                    
+                    // Save images locally
+                    for (index, image) in selectedImages.enumerated() {
+                        do {
+                            try ImageStorageManager.shared.saveImage(image, for: userId, at: index)
+                        } catch {
+                            print("Error saving image locally: \(error.localizedDescription)")
+                            errorMessage = "Error saving image locally: \(error.localizedDescription)"
+                            showError = true
+                            return
+                        }
+                    }
+                    
+                    onProfileImagesUpdated?()
                 }
-            } else {
-                errorMessage = "Not all photos were uploaded successfully"
-                showError = true
-                isLoading = false
             }
         }
     }
@@ -402,3 +429,4 @@ struct EditProfileImageView: View {
         EditProfileImageView(userName: .constant("Preview User"), isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
     }
 } 
+

@@ -5,6 +5,8 @@ import FirebaseAuth
 struct EditBioView: View {
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
+    var isProfileSetup: Bool = false
     @State private var bio: String = ""
     @State private var isLoading = false
     @State private var showError = false
@@ -19,12 +21,14 @@ struct EditBioView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
+                        if !isProfileSetup {
+                            HStack {
+                                Spacer()
+                                Button(action: { dismiss() }) {
+                                    Image(systemName: "xmark")
+                                        .font(.title2)
+                                        .foregroundColor(Color("Gold"))
+                                }
                             }
                         }
                         Image(systemName: "text.quote")
@@ -63,14 +67,20 @@ struct EditBioView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Save/Next button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
+                            Button(action: {
+                                if isProfileSetup {
+                                    saveAndContinue()
+                                } else {
+                                    saveChanges()
+                                }
+                            }) {
+                                Text(isProfileSetup ? "Next" : "Save Changes")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -118,6 +128,7 @@ struct EditBioView: View {
     }
     
     private func saveChanges() {
+        guard !bio.isEmpty else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
             showError = true
@@ -126,24 +137,55 @@ struct EditBioView: View {
         
         isLoading = true
         
-        // First save the bio
-        db.collection("users").document(userId).updateData([
+        let data: [String: Any] = [
             "bio": bio
-        ]) { error in
+        ]
+        
+        db.collection("users").document(userId).updateData(data) { error in
             if let error = error {
                 DispatchQueue.main.async {
-                    isLoading = false
-                    errorMessage = "Error saving bio: \(error.localizedDescription)"
-                    showError = true
+                    self.isLoading = false
+                    self.errorMessage = "Error saving bio: \(error.localizedDescription)"
+                    self.showError = true
                 }
                 return
             }
             
-            // Only dismiss after successful save
             DispatchQueue.main.async {
-                isLoading = false
-                selectedTab = "Profile"
-                dismiss()
+                self.isLoading = false
+                self.selectedTab = "Profile"
+                self.dismiss()
+            }
+        }
+    }
+    
+    private func saveAndContinue() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        // Prevent multiple taps while saving
+        guard !isLoading else { return }
+        isLoading = true
+        
+        let data: [String: Any] = [
+            "bio": bio
+        ]
+        
+        db.collection("users").document(userId).updateData(data) { error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    print("Error saving bio: \(error.localizedDescription)")
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if self.isProfileSetup {
+                    self.profileViewModel.shouldAdvanceToNextStep = true
+                } else {
+                    self.dismiss()
+                }
             }
         }
     }

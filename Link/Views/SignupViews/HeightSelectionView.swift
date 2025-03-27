@@ -1,17 +1,17 @@
 import SwiftUI
-import FirebaseFirestore
 import FirebaseAuth
+import FirebaseFirestore
 
-struct EditHeightView: View {
+struct HeightSelectionView: View {
     @Binding var isAuthenticated: Bool
-    @Binding var selectedTab: String
+    @Binding var currentStep: Int
+    @EnvironmentObject var appViewModel: AppViewModel
     @State private var selectedFeet = 5
     @State private var selectedInches = 8
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var isPickerVisible = false
-    @Environment(\.dismiss) private var dismiss
     
     private let db = Firestore.firestore()
     
@@ -28,23 +28,19 @@ struct EditHeightView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
-                            }
-                        }
-                        Image(systemName: "ruler.fill")
+                        Image(systemName: "ruler")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)
-                        Text("Edit Height")
+                            .symbolEffect(.bounce, options: .repeating)
+                        Text("What's your height?")
                             .font(.custom("Lora-Regular", size: 19))
                             .foregroundColor(Color.accent)
                     }
                     .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Height picker
                     VStack(spacing: 20) {
@@ -138,23 +134,28 @@ struct EditHeightView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Continue button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(Color("Gold"))
-                                    )
-                                    .animation(.easeInOut(duration: 0.2), value: true)
+                            Button(action: saveAndContinue) {
+                                HStack {
+                                    Text("Continue")
+                                        .font(.system(size: 17, weight: .semibold))
+                                    
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 17, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(Color("Gold"))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: true)
                             }
                         }
                     }
@@ -162,58 +163,17 @@ struct EditHeightView: View {
                     .padding(.bottom, 32)
                 }
                 .padding()
-                .navigationBarBackButtonHidden(false)
-                .navigationBarItems(leading: 
-                    Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
-                    }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                                .foregroundColor(Color("Gold"))
-                            Text("Back")
-                                .foregroundColor(Color("Gold"))
-                        }
-                    }
-                )
+                .navigationBarBackButtonHidden(true)
                 .alert("Error", isPresented: $showError) {
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(errorMessage)
                 }
-                .onAppear {
-                    loadUserHeight()
-                }
             }
         }
     }
     
-    private func loadUserHeight() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        
-        db.collection("users").document(userId).getDocument { document, error in
-            if let error = error {
-                print("Error loading height: \(error.localizedDescription)")
-                return
-            }
-            
-            if let document = document,
-               let height = document.data()?["height"] as? String {
-                DispatchQueue.main.async {
-                    // Parse the height string (e.g., "5'8\"")
-                    let components = height.components(separatedBy: CharacterSet(charactersIn: "'\""))
-                    if components.count >= 2,
-                       let feet = Int(components[0]),
-                       let inches = Int(components[1]) {
-                        selectedFeet = feet
-                        selectedInches = inches
-                    }
-                }
-            }
-        }
-    }
-    
-    private func saveChanges() {
+    private func saveAndContinue() {
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
             showError = true
@@ -222,9 +182,12 @@ struct EditHeightView: View {
         
         isLoading = true
         
-        db.collection("users").document(userId).updateData([
-            "height": formattedHeight
-        ]) { error in
+        let userData: [String: Any] = [
+            "height": formattedHeight,
+            "setupProgress": SignupProgress.heightComplete.rawValue
+        ]
+        
+        db.collection("users").document(userId).updateData(userData) { error in
             isLoading = false
             
             if let error = error {
@@ -233,14 +196,33 @@ struct EditHeightView: View {
                 return
             }
             
-            selectedTab = "Profile"
-            dismiss()
+            withAnimation {
+                appViewModel.updateProgress(.heightComplete)
+                currentStep = 7
+            }
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        EditHeightView(isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
+        HeightSelectionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(6)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        HeightSelectionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(6)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

@@ -8,6 +8,7 @@ struct ProfileView: View {
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
     @EnvironmentObject private var profileViewModel: ProfileViewModel
+    @EnvironmentObject private var appViewModel: AppViewModel
     @State private var profileImageUrl: String?
     @State private var isLoadingImage = false
     @State private var selectedSection = 0
@@ -160,7 +161,7 @@ struct ProfileView: View {
                                 .foregroundColor(Color("Gold"))
                         }
                         
-                        if !profileSetupCompleted {
+                        if !profileViewModel.profileSetupCompleted {
                             Text("Incomplete profile")
                                 .foregroundColor(Color.accent.opacity(0.7))
                             
@@ -176,7 +177,9 @@ struct ProfileView: View {
                             }
                             .padding(.horizontal)
                             .fullScreenCover(isPresented: $showFinishProfileSetup) {
-                                FinishProfileSetupView()
+                                FinishProfileSetupFlowView(isAuthenticated: $isAuthenticated)
+                                    .environmentObject(appViewModel)
+                                    .environmentObject(profileViewModel)
                             }
                         }
                         
@@ -223,25 +226,6 @@ struct ProfileView: View {
                                         .foregroundColor(Color.accent)
                                         .padding(.horizontal)
                                     
-                                    if !profileSetupCompleted {
-                                        Button(action: { showFinishProfileSetup = true }) {
-                                            HStack {
-                                                Image(systemName: "checkmark.circle")
-                                                    .foregroundColor(Color("Gold"))
-                                                Text("Complete Profile Setup")
-                                                    .foregroundColor(Color.accent)
-                                                Spacer()
-                                                Image(systemName: "chevron.right")
-                                                    .foregroundColor(Color("Gold"))
-                                            }
-                                            .padding()
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
-                                            )
-                                        }
-                                    }
-                                    
                                     VStack(spacing: 12) {
                                         Button(action: {
                                             showEditProfileImagesFullScreen = true
@@ -249,13 +233,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "photo.circle")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Profile Image")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -268,13 +256,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "person.2.circle")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Gender")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -287,13 +279,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "heart.circle")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Sexuality")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -306,13 +302,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "star.circle")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Dating Intention")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -325,13 +325,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "person.circle")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Children")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -344,13 +348,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "house.circle")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Family Plans")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -363,13 +371,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "ruler")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Height")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -382,13 +394,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "heart.text.square")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Sexuality Preference")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -401,13 +417,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "book.circle")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Education")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -420,13 +440,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "sparkles")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Religion")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -439,13 +463,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "globe")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Ethnicity")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -458,13 +486,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "wineglass")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Drinking")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -477,13 +509,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "smoke")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Smoking")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -496,13 +532,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "building.columns")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Politics")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -515,13 +555,17 @@ struct ProfileView: View {
                                             HStack {
                                                 Image(systemName: "pills")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 20))
                                                 Text("Drugs")
                                                     .foregroundColor(Color.accent)
                                                 Spacer()
                                                 Image(systemName: "chevron.right")
                                                     .foregroundColor(Color("Gold"))
+                                                    .font(.system(size: 14))
                                             }
-                                            .padding()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 16)
+                                            .frame(maxWidth: .infinity)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -539,13 +583,17 @@ struct ProfileView: View {
                                                 HStack {
                                                     Image(systemName: "person.2")
                                                         .foregroundColor(Color("Gold"))
+                                                        .font(.system(size: 20))
                                                     Text("Appearance & Lifestyle")
                                                         .foregroundColor(Color.accent)
                                                     Spacer()
                                                     Image(systemName: "chevron.right")
                                                         .foregroundColor(Color("Gold"))
+                                                        .font(.system(size: 14))
                                                 }
-                                                .padding()
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 16)
+                                                .frame(maxWidth: .infinity)
                                                 .background(
                                                     RoundedRectangle(cornerRadius: 12)
                                                         .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -556,13 +604,17 @@ struct ProfileView: View {
                                                 HStack {
                                                     Image(systemName: "figure.run")
                                                         .foregroundColor(Color("Gold"))
+                                                        .font(.system(size: 20))
                                                     Text("Fitness & Activity Level")
                                                         .foregroundColor(Color.accent)
                                                     Spacer()
                                                     Image(systemName: "chevron.right")
                                                         .foregroundColor(Color("Gold"))
+                                                        .font(.system(size: 14))
                                                 }
-                                                .padding()
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 16)
+                                                .frame(maxWidth: .infinity)
                                                 .background(
                                                     RoundedRectangle(cornerRadius: 12)
                                                         .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -573,13 +625,17 @@ struct ProfileView: View {
                                                 HStack {
                                                     Image(systemName: "fork.knife")
                                                         .foregroundColor(Color("Gold"))
+                                                        .font(.system(size: 20))
                                                     Text("Dietary Preferences")
                                                         .foregroundColor(Color.accent)
                                                     Spacer()
                                                     Image(systemName: "chevron.right")
                                                         .foregroundColor(Color("Gold"))
+                                                        .font(.system(size: 14))
                                                 }
-                                                .padding()
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 16)
+                                                .frame(maxWidth: .infinity)
                                                 .background(
                                                     RoundedRectangle(cornerRadius: 12)
                                                         .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -590,13 +646,17 @@ struct ProfileView: View {
                                                 HStack {
                                                     Image(systemName: "pawprint")
                                                         .foregroundColor(Color("Gold"))
+                                                        .font(.system(size: 20))
                                                     Text("Pets & Animals")
                                                         .foregroundColor(Color.accent)
                                                     Spacer()
                                                     Image(systemName: "chevron.right")
                                                         .foregroundColor(Color("Gold"))
+                                                        .font(.system(size: 14))
                                                 }
-                                                .padding()
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 16)
+                                                .frame(maxWidth: .infinity)
                                                 .background(
                                                     RoundedRectangle(cornerRadius: 12)
                                                         .stroke(Color("Gold").opacity(0.3), lineWidth: 2)
@@ -698,16 +758,16 @@ struct ProfileView: View {
                 EditDrugsView(isAuthenticated: $isAuthenticated, selectedTab: $selectedTab)
             }
             .fullScreenCover(isPresented: $showAppearanceLifestyle) {
-                AppearanceLifestyleView()
+                EditAppearanceLifestyleView()
             }
             .fullScreenCover(isPresented: $showFitnessActivity) {
-                FitnessActivityView()
+                EditFitnessActivityView()
             }
             .fullScreenCover(isPresented: $showDietaryPreferences) {
-                DietaryPreferencesView()
+                EditDietaryPreferencesView()
             }
             .fullScreenCover(isPresented: $showPetsAnimals) {
-                PetsAnimalsView()
+                EditPetsAnimalsView()
             }
             .fullScreenCover(isPresented: $showSettings) {
                 SettingsView(isAuthenticated: $isAuthenticated)
@@ -1066,5 +1126,6 @@ struct SettingsView: View {
     NavigationStack {
         ProfileView(userName: .constant("Preview User"), isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
             .environmentObject(ProfileViewModel())
+            .environmentObject(AppViewModel())
     }
 } 

@@ -252,7 +252,6 @@ struct EditOccupationView: View {
             DispatchQueue.main.async {
                 self.isLoading = false
                 if self.isProfileSetup {
-                    self.profileViewModel.shouldAdvanceToNextStep = true
                     self.appViewModel.updateProgress(.occupationComplete)
                     self.currentStep += 1
                 } else {

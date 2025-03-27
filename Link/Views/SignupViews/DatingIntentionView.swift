@@ -1,15 +1,15 @@
 import SwiftUI
-import FirebaseFirestore
 import FirebaseAuth
+import FirebaseFirestore
 
-struct EditDatingIntentionView: View {
+struct DatingIntentionView: View {
     @Binding var isAuthenticated: Bool
-    @Binding var selectedTab: String
+    @Binding var currentStep: Int
+    @EnvironmentObject var appViewModel: AppViewModel
     @State private var selectedIntention: String?
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @Environment(\.dismiss) private var dismiss
     
     private let db = Firestore.firestore()
     
@@ -26,24 +26,24 @@ struct EditDatingIntentionView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
                     // Header
-                    VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
-                            }
-                        }
+                    VStack(spacing: 12) {
                         Image(systemName: "heart.fill")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
-                            .padding(.bottom, 8)
-                        Text("Edit Dating Intention")
-                            .font(.custom("Lora-Regular", size: 19))
+                            .symbolEffect(.bounce, options: .repeating)
+                        
+                        Text("What are you looking for?")
+                            .font(.custom("Lora-Regular", size: 24))
                             .foregroundColor(Color.accent)
+                        
+                        Text("This helps us find better matches for you")
+                            .font(.custom("Lora-Regular", size: 16))
+                            .foregroundColor(Color.accent.opacity(0.7))
                     }
                     .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Intention options
                     VStack(spacing: 12) {
@@ -71,14 +71,14 @@ struct EditDatingIntentionView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Continue button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
+                            Button(action: saveAndContinue) {
+                                Text("Continue")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -96,51 +96,17 @@ struct EditDatingIntentionView: View {
                     .padding(.bottom, 32)
                 }
                 .padding()
-                .navigationBarBackButtonHidden(false)
-                .navigationBarItems(leading: 
-                    Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
-                    }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                                .foregroundColor(Color("Gold"))
-                            Text("Back")
-                                .foregroundColor(Color("Gold"))
-                        }
-                    }
-                )
+                .navigationBarBackButtonHidden(true)
                 .alert("Error", isPresented: $showError) {
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(errorMessage)
                 }
-                .onAppear {
-                    loadUserIntention()
-                }
             }
         }
     }
     
-    private func loadUserIntention() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        
-        db.collection("users").document(userId).getDocument { document, error in
-            if let error = error {
-                print("Error loading dating intention: \(error.localizedDescription)")
-                return
-            }
-            
-            if let document = document,
-               let intention = document.data()?["datingIntention"] as? String {
-                DispatchQueue.main.async {
-                    selectedIntention = intention
-                }
-            }
-        }
-    }
-    
-    private func saveChanges() {
+    private func saveAndContinue() {
         guard let intention = selectedIntention else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
@@ -150,25 +116,47 @@ struct EditDatingIntentionView: View {
         
         isLoading = true
         
-        db.collection("users").document(userId).updateData([
-            "datingIntention": intention
-        ]) { error in
+        let userData: [String: Any] = [
+            "datingIntention": intention,
+            "setupProgress": SignupProgress.datingIntentionComplete.rawValue
+        ]
+        
+        db.collection("users").document(userId).updateData(userData) { error in
             isLoading = false
             
             if let error = error {
-                errorMessage = "Error saving dating intention: \(error.localizedDescription)"
+                errorMessage = "Error saving intention: \(error.localizedDescription)"
                 showError = true
                 return
             }
             
-            selectedTab = "Profile"
-            dismiss()
+            withAnimation {
+                appViewModel.updateProgress(.datingIntentionComplete)
+                currentStep = 8
+            }
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        EditDatingIntentionView(isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
+        DatingIntentionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(7)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        DatingIntentionView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(7)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 

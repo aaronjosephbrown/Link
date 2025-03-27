@@ -5,23 +5,25 @@ import FirebaseAuth
 struct EditEducationView: View {
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
-    @State private var selectedEducation: String?
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var education = ""
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @Environment(\.dismiss) private var dismiss
+    var isProfileSetup: Bool = false
     
-    private let db = Firestore.firestore()
-    
-    private let educationOptions = [
+    private let educationLevels = [
         "High School",
         "Some College",
         "Associate's Degree",
         "Bachelor's Degree",
         "Master's Degree",
         "Doctorate",
-        "Prefer not to say"
+        "Trade School",
+        "Other"
     ]
+    private let db = Firestore.firestore()
     
     var body: some View {
         BackgroundView {
@@ -29,12 +31,14 @@ struct EditEducationView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
+                        if !isProfileSetup {
+                            HStack {
+                                Spacer()
+                                Button(action: { dismiss() }) {
+                                    Image(systemName: "xmark")
+                                        .font(.title2)
+                                        .foregroundColor(Color("Gold"))
+                                }
                             }
                         }
                         Image(systemName: "book.circle")
@@ -49,22 +53,25 @@ struct EditEducationView: View {
                     
                     // Education options
                     VStack(spacing: 12) {
-                        ForEach(educationOptions, id: \.self) { option in
-                            Button(action: { selectedEducation = option }) {
+                        ForEach(educationLevels, id: \.self) { option in
+                            Button(action: { education = option }) {
                                 HStack {
                                     Text(option)
                                         .font(.custom("Lora-Regular", size: 17))
                                         .foregroundColor(Color.accent)
                                     Spacer()
-                                    if selectedEducation == option {
+                                    if education == option {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(Color("Gold"))
+                                            .font(.system(size: 20))
                                     }
                                 }
-                                .padding()
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedEducation == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                        .stroke(education == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
                                 )
                             }
                         }
@@ -73,25 +80,30 @@ struct EditEducationView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Save/Next button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
+                            Button(action: {
+                                if isProfileSetup {
+                                    saveAndContinue()
+                                } else {
+                                    saveChanges()
+                                }
+                            }) {
+                                Text(isProfileSetup ? "Next" : "Save Changes")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 16)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(selectedEducation != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(education.isEmpty ? Color.gray.opacity(0.3) : Color("Gold"))
                                     )
-                                    .animation(.easeInOut(duration: 0.2), value: selectedEducation != nil)
                             }
-                            .disabled(selectedEducation == nil)
+                            .disabled(education.isEmpty)
                         }
                     }
                     .padding(.horizontal)
@@ -101,8 +113,13 @@ struct EditEducationView: View {
                 .navigationBarBackButtonHidden(false)
                 .navigationBarItems(leading: 
                     Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
+                        if isProfileSetup {
+                            // In profile setup, we want to go back to the previous incomplete field
+                            dismiss()
+                        } else {
+                            selectedTab = "Profile"
+                            dismiss()
+                        }
                     }) {
                         HStack {
                             Image(systemName: "chevron.left")
@@ -136,14 +153,13 @@ struct EditEducationView: View {
             if let document = document,
                let education = document.data()?["education"] as? String {
                 DispatchQueue.main.async {
-                    selectedEducation = education
+                    self.education = education
                 }
             }
         }
     }
     
     private func saveChanges() {
-        guard let education = selectedEducation else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
             showError = true
@@ -152,19 +168,56 @@ struct EditEducationView: View {
         
         isLoading = true
         
-        db.collection("users").document(userId).updateData([
+        let data: [String: Any] = [
             "education": education
-        ]) { error in
-            isLoading = false
-            
+        ]
+        
+        db.collection("users").document(userId).updateData(data) { error in
             if let error = error {
-                errorMessage = "Error saving education: \(error.localizedDescription)"
-                showError = true
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = "Error saving education: \(error.localizedDescription)"
+                    self.showError = true
+                }
                 return
             }
             
-            selectedTab = "Profile"
-            dismiss()
+            DispatchQueue.main.async {
+                self.isLoading = false
+                self.selectedTab = "Profile"
+                self.dismiss()
+            }
+        }
+    }
+    
+    private func saveAndContinue() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        // Prevent multiple taps while saving
+        guard !isLoading else { return }
+        isLoading = true
+        
+        let data: [String: Any] = [
+            "education": education
+        ]
+        
+        db.collection("users").document(userId).updateData(data) { error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    print("Error saving education: \(error.localizedDescription)")
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if self.isProfileSetup {
+                    self.profileViewModel.shouldAdvanceToNextStep = true
+                } else {
+                    self.dismiss()
+                }
+            }
         }
     }
 }

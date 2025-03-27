@@ -5,13 +5,17 @@ import FirebaseAuth
 struct EditChildrenView: View {
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var children = ""
     @State private var hasChildren = false
     @State private var numberOfChildren = 1
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @Environment(\.dismiss) private var dismiss
+    var isProfileSetup: Bool = false
     
+    private let childrenOptions = ["Don't have and don't want", "Don't have but want someday", "Have and don't want more", "Have and want more"]
     private let db = Firestore.firestore()
     
     var body: some View {
@@ -20,12 +24,14 @@ struct EditChildrenView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
+                        if !isProfileSetup {
+                            HStack {
+                                Spacer()
+                                Button(action: { dismiss() }) {
+                                    Image(systemName: "xmark")
+                                        .font(.title2)
+                                        .foregroundColor(Color("Gold"))
+                                }
                             }
                         }
                         Image(systemName: "person.fill")
@@ -96,14 +102,20 @@ struct EditChildrenView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Save/Next button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
+                            Button(action: {
+                                if isProfileSetup {
+                                    saveAndContinue()
+                                } else {
+                                    saveChanges()
+                                }
+                            }) {
+                                Text(isProfileSetup ? "Next" : "Save Changes")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -123,8 +135,13 @@ struct EditChildrenView: View {
                 .navigationBarBackButtonHidden(false)
                 .navigationBarItems(leading: 
                     Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
+                        if isProfileSetup {
+                            // In profile setup, we want to go back to the previous incomplete field
+                            dismiss()
+                        } else {
+                            selectedTab = "Profile"
+                            dismiss()
+                        }
                     }) {
                         HStack {
                             Image(systemName: "chevron.left")
@@ -189,6 +206,37 @@ struct EditChildrenView: View {
             
             selectedTab = "Profile"
             dismiss()
+        }
+    }
+    
+    private func saveAndContinue() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        // Prevent multiple taps while saving
+        guard !isLoading else { return }
+        isLoading = true
+        
+        let data: [String: Any] = [
+            "children": children
+        ]
+        
+        db.collection("users").document(userId).updateData(data) { error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    print("Error saving children status: \(error.localizedDescription)")
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if self.isProfileSetup {
+                    self.profileViewModel.shouldAdvanceToNextStep = true
+                } else {
+                    self.dismiss()
+                }
+            }
         }
     }
 }

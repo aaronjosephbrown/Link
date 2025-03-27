@@ -5,15 +5,28 @@ import FirebaseAuth
 struct EditEthnicityView: View {
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
-    @State private var selectedEthnicity: String?
-    @State private var selectedSubcategory: String?
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var ethnicity = ""
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var isSubcategoryVisible = false
     @State private var searchText = ""
-    @Environment(\.dismiss) private var dismiss
+    @State private var selectedSubcategory: String?
+    var isProfileSetup: Bool = false
     
+    private let ethnicities = [
+        "Asian",
+        "Black/African",
+        "Hispanic/Latino",
+        "Middle Eastern",
+        "Native American",
+        "Pacific Islander",
+        "White/Caucasian",
+        "Mixed",
+        "Other",
+        "Prefer not to say"
+    ]
     private let db = Firestore.firestore()
     
     private let ethnicityOptions = [
@@ -73,12 +86,14 @@ struct EditEthnicityView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
+                        if !isProfileSetup {
+                            HStack {
+                                Spacer()
+                                Button(action: { dismiss() }) {
+                                    Image(systemName: "xmark")
+                                        .font(.title2)
+                                        .foregroundColor(Color("Gold"))
+                                }
                             }
                         }
                         Image(systemName: "person.2.fill")
@@ -118,9 +133,7 @@ struct EditEthnicityView: View {
                         ForEach(filteredEthnicities, id: \.self) { option in
                             Button(action: {
                                 withAnimation(.spring(response: 0.3)) {
-                                    selectedEthnicity = option
-                                    selectedSubcategory = nil
-                                    isSubcategoryVisible = subcategories[option] != nil
+                                    ethnicity = option
                                 }
                             }) {
                                 HStack {
@@ -128,15 +141,18 @@ struct EditEthnicityView: View {
                                         .font(.custom("Lora-Regular", size: 17))
                                         .foregroundColor(Color.accent)
                                     Spacer()
-                                    if selectedEthnicity == option {
+                                    if ethnicity == option {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(Color("Gold"))
+                                            .font(.system(size: 20))
                                     }
                                 }
-                                .padding()
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedEthnicity == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                        .stroke(ethnicity == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
                                 )
                             }
                         }
@@ -144,8 +160,7 @@ struct EditEthnicityView: View {
                     .padding(.horizontal)
                     
                     // Subcategory selector (if applicable)
-                    if let ethnicity = selectedEthnicity,
-                       let options = subcategories[ethnicity] {
+                    if let options = subcategories[ethnicity] {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Select specific background")
                                 .font(.custom("Lora-Regular", size: 17))
@@ -186,25 +201,30 @@ struct EditEthnicityView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Save/Next button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
+                            Button(action: {
+                                if isProfileSetup {
+                                    saveAndContinue()
+                                } else {
+                                    saveChanges()
+                                }
+                            }) {
+                                Text(isProfileSetup ? "Next" : "Save Changes")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 16)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(selectedEthnicity != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(ethnicity.isEmpty ? Color.gray.opacity(0.3) : Color("Gold"))
                                     )
-                                    .animation(.easeInOut(duration: 0.2), value: selectedEthnicity != nil)
                             }
-                            .disabled(selectedEthnicity == nil)
+                            .disabled(ethnicity.isEmpty)
                         }
                     }
                     .padding(.horizontal)
@@ -214,8 +234,12 @@ struct EditEthnicityView: View {
                 .navigationBarBackButtonHidden(false)
                 .navigationBarItems(leading: 
                     Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
+                        if isProfileSetup {
+                            dismiss()
+                        } else {
+                            selectedTab = "Profile"
+                            dismiss()
+                        }
                     }) {
                         HStack {
                             Image(systemName: "chevron.left")
@@ -247,17 +271,17 @@ struct EditEthnicityView: View {
             }
             
             if let document = document {
-                DispatchQueue.main.async {
-                    selectedEthnicity = document.data()?["ethnicity"] as? String
-                    selectedSubcategory = document.data()?["ethnicitySubcategory"] as? String
-                    isSubcategoryVisible = selectedEthnicity != nil && subcategories[selectedEthnicity!] != nil
+                let data = document.data() ?? [:]
+                if let ethnicity = data["ethnicity"] as? String {
+                    DispatchQueue.main.async {
+                        self.ethnicity = ethnicity
+                    }
                 }
             }
         }
     }
     
     private func saveChanges() {
-        guard let ethnicity = selectedEthnicity else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
             showError = true
@@ -266,13 +290,11 @@ struct EditEthnicityView: View {
         
         isLoading = true
         
-        var userData: [String: Any] = ["ethnicity": ethnicity]
+        let data: [String: Any] = [
+            "ethnicity": ethnicity
+        ]
         
-        if let subcategory = selectedSubcategory {
-            userData["ethnicitySubcategory"] = subcategory
-        }
-        
-        db.collection("users").document(userId).updateData(userData) { error in
+        db.collection("users").document(userId).updateData(data) { error in
             isLoading = false
             
             if let error = error {
@@ -283,6 +305,37 @@ struct EditEthnicityView: View {
             
             selectedTab = "Profile"
             dismiss()
+        }
+    }
+    
+    private func saveAndContinue() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        // Prevent multiple taps while saving
+        guard !isLoading else { return }
+        isLoading = true
+        
+        let data: [String: Any] = [
+            "ethnicity": ethnicity
+        ]
+        
+        db.collection("users").document(userId).updateData(data) { error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    print("Error saving ethnicity: \(error.localizedDescription)")
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if self.isProfileSetup {
+                    self.profileViewModel.shouldAdvanceToNextStep = true
+                } else {
+                    self.dismiss()
+                }
+            }
         }
     }
 }

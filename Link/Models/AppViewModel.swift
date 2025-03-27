@@ -32,13 +32,40 @@ class AppViewModel: ObservableObject {
     @AppStorage("currentSignupProgress") private var currentSignupProgress = SignupProgress.initial.rawValue
     @AppStorage("setupComplete") private var localSetupComplete = false
     @Published var isAuthenticated = false
+    @Published var currentStep = 0
     
     private let db = Firestore.firestore()
+    
+    init() {
+        // Sync progress with Firestore when app starts
+        syncProgressWithFirestore()
+    }
+    
+    private func syncProgressWithFirestore() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        db.collection("users").document(userId).getDocument { [weak self] document, error in
+            if let error = error {
+                print("Error syncing progress: \(error.localizedDescription)")
+                return
+            }
+            
+            if let document = document,
+               let progress = document.data()?["setupProgress"] as? String {
+                DispatchQueue.main.async {
+                    self?.currentSignupProgress = progress
+                    self?.localSetupComplete = progress == SignupProgress.complete.rawValue
+                    self?.currentStep = self?.getCurrentStep() ?? 0
+                }
+            }
+        }
+    }
     
     func resetProgress() {
         // Reset local storage
         currentSignupProgress = SignupProgress.initial.rawValue
         localSetupComplete = false
+        currentStep = 0
         
         // Reset Firestore if user is authenticated
         if let userId = Auth.auth().currentUser?.uid {
@@ -59,6 +86,7 @@ class AppViewModel: ObservableObject {
         // Update local storage immediately
         currentSignupProgress = progress.rawValue
         localSetupComplete = progress == .complete
+        currentStep = getCurrentStep()
         
         // Update Firestore
         let userData: [String: Any] = ["setupProgress": progress.rawValue]
@@ -68,6 +96,7 @@ class AppViewModel: ObservableObject {
                 // Revert local storage if server update fails
                 self?.currentSignupProgress = SignupProgress.initial.rawValue
                 self?.localSetupComplete = false
+                self?.currentStep = 0
             } else {
                 print("Successfully updated progress to: \(progress)")
             }

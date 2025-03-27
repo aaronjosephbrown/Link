@@ -5,30 +5,27 @@ import FirebaseAuth
 struct EditSmokingView: View {
     @Binding var isAuthenticated: Bool
     @Binding var selectedTab: String
-    @State private var selectedSmokingHabit: String?
-    @State private var usesTobacco = false
-    @State private var usesWeed = false
+    @EnvironmentObject private var profileViewModel: ProfileViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var smokingHabit = ""
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @Environment(\.dismiss) private var dismiss
-    
-    private let db = Firestore.firestore()
+    @State private var usesTobacco = false
+    @State private var usesWeed = false
+    var isProfileSetup: Bool = false
     
     private let smokingOptions = [
         "Never",
-        "Rarely",
-        "Sometimes",
-        "Often",
-        "Everyday",
+        "Occasionally",
+        "Regularly",
+        "Trying to quit",
         "Prefer not to say"
     ]
+    private let db = Firestore.firestore()
     
     private var showsAdditionalQuestions: Bool {
-        if let habit = selectedSmokingHabit {
-            return habit != "Never" && habit != "Prefer not to say"
-        }
-        return false
+        smokingHabit != "Never" && smokingHabit != "Prefer not to say"
     }
     
     var body: some View {
@@ -37,12 +34,14 @@ struct EditSmokingView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
+                        if !isProfileSetup {
+                            HStack {
+                                Spacer()
+                                Button(action: { dismiss() }) {
+                                    Image(systemName: "xmark")
+                                        .font(.title2)
+                                        .foregroundColor(Color("Gold"))
+                                }
                             }
                         }
                         Image(systemName: "smoke.fill")
@@ -58,21 +57,24 @@ struct EditSmokingView: View {
                     // Smoking options
                     VStack(spacing: 12) {
                         ForEach(smokingOptions, id: \.self) { option in
-                            Button(action: { selectedSmokingHabit = option }) {
+                            Button(action: { smokingHabit = option }) {
                                 HStack {
                                     Text(option)
                                         .font(.custom("Lora-Regular", size: 17))
                                         .foregroundColor(Color.accent)
                                     Spacer()
-                                    if selectedSmokingHabit == option {
+                                    if smokingHabit == option {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(Color("Gold"))
+                                            .font(.system(size: 20))
                                     }
                                 }
-                                .padding()
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedSmokingHabit == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
+                                        .stroke(smokingHabit == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
                                 )
                             }
                         }
@@ -80,14 +82,16 @@ struct EditSmokingView: View {
                     .padding(.horizontal)
                     
                     if showsAdditionalQuestions {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 12) {
                             Toggle(isOn: $usesTobacco) {
                                 Text("Do you use tobacco products?")
                                     .font(.custom("Lora-Regular", size: 16))
                                     .foregroundColor(Color.accent)
                             }
                             .tint(Color("Gold"))
-                            .padding()
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .frame(maxWidth: .infinity)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(Color("Gold").opacity(0.1))
@@ -103,7 +107,9 @@ struct EditSmokingView: View {
                                     .foregroundColor(Color.accent)
                             }
                             .tint(Color("Gold"))
-                            .padding()
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .frame(maxWidth: .infinity)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(Color("Gold").opacity(0.1))
@@ -118,25 +124,31 @@ struct EditSmokingView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Save/Next button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
+                            Button(action: {
+                                if isProfileSetup {
+                                    saveAndContinue()
+                                } else {
+                                    saveChanges()
+                                }
+                            }) {
+                                Text(isProfileSetup ? "Next" : "Save Changes")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 16)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(selectedSmokingHabit != nil ? Color("Gold") : Color.gray.opacity(0.3))
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(smokingHabit != "" ? Color("Gold") : Color.gray.opacity(0.3))
                                     )
-                                    .animation(.easeInOut(duration: 0.2), value: selectedSmokingHabit != nil)
+                                    .animation(.easeInOut(duration: 0.2), value: smokingHabit != "")
                             }
-                            .disabled(selectedSmokingHabit == nil)
+                            .disabled(smokingHabit == "")
                         }
                     }
                     .padding(.horizontal)
@@ -146,8 +158,12 @@ struct EditSmokingView: View {
                 .navigationBarBackButtonHidden(false)
                 .navigationBarItems(leading: 
                     Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
+                        if isProfileSetup {
+                            dismiss()
+                        } else {
+                            selectedTab = "Profile"
+                            dismiss()
+                        }
                     }) {
                         HStack {
                             Image(systemName: "chevron.left")
@@ -179,35 +195,31 @@ struct EditSmokingView: View {
             }
             
             if let document = document {
+                let data = document.data() ?? [:]
                 DispatchQueue.main.async {
-                    selectedSmokingHabit = document.data()?["smokingHabits"] as? String
-                    usesTobacco = document.data()?["usesTobacco"] as? Bool ?? false
-                    usesWeed = document.data()?["usesMarijuana"] as? Bool ?? false
+                    smokingHabit = data["smokingHabits"] as? String ?? ""
+                    usesTobacco = data["usesTobacco"] as? Bool ?? false
+                    usesWeed = data["usesMarijuana"] as? Bool ?? false
                 }
             }
         }
     }
     
     private func saveChanges() {
-        guard let smokingHabit = selectedSmokingHabit else { return }
-        guard let userId = Auth.auth().currentUser?.uid else {
-            errorMessage = "No authenticated user found"
-            showError = true
-            return
-        }
+        guard let userId = Auth.auth().currentUser?.uid else { return }
         
         isLoading = true
         
-        var userData: [String: Any] = [
+        var data: [String: Any] = [
             "smokingHabits": smokingHabit
         ]
         
         if showsAdditionalQuestions {
-            userData["usesTobacco"] = usesTobacco
-            userData["usesMarijuana"] = usesWeed
+            data["usesTobacco"] = usesTobacco
+            data["usesMarijuana"] = usesWeed
         }
         
-        db.collection("users").document(userId).updateData(userData) { error in
+        db.collection("users").document(userId).updateData(data) { error in
             isLoading = false
             
             if let error = error {
@@ -218,6 +230,37 @@ struct EditSmokingView: View {
             
             selectedTab = "Profile"
             dismiss()
+        }
+    }
+    
+    private func saveAndContinue() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        // Prevent multiple taps while saving
+        guard !isLoading else { return }
+        isLoading = true
+        
+        let data: [String: Any] = [
+            "smokingHabit": smokingHabit
+        ]
+        
+        db.collection("users").document(userId).updateData(data) { error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    print("Error saving smoking habit: \(error.localizedDescription)")
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if self.isProfileSetup {
+                    self.profileViewModel.shouldAdvanceToNextStep = true
+                } else {
+                    self.dismiss()
+                }
+            }
         }
     }
 }

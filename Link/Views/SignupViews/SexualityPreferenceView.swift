@@ -1,15 +1,15 @@
 import SwiftUI
-import FirebaseFirestore
 import FirebaseAuth
+import FirebaseFirestore
 
-struct EditSexualityPreferenceView: View {
+struct SexualityPreferenceView: View {
     @Binding var isAuthenticated: Bool
-    @Binding var selectedTab: String
+    @Binding var currentStep: Int
+    @EnvironmentObject var appViewModel: AppViewModel
     @State private var selectedPreference: String?
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @Environment(\.dismiss) private var dismiss
     
     private let db = Firestore.firestore()
     
@@ -28,23 +28,19 @@ struct EditSexualityPreferenceView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.title2)
-                                    .foregroundColor(Color("Gold"))
-                            }
-                        }
-                        Image(systemName: "heart.text.square")
+                        Image(systemName: "person.2.circle.fill")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)
-                        Text("Sexuality Preference")
+                            .symbolEffect(.bounce, options: .repeating)
+                        Text("Who are you interested in?")
                             .font(.custom("Lora-Regular", size: 19))
                             .foregroundColor(Color.accent)
                     }
                     .padding(.top, 40)
+                    
+                    // Progress indicator
+                    SignupProgressView(currentStep: currentStep)
                     
                     // Preference options
                     VStack(spacing: 12) {
@@ -72,14 +68,14 @@ struct EditSexualityPreferenceView: View {
                     
                     Spacer()
                     
-                    // Save button
+                    // Continue button
                     VStack(spacing: 16) {
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(1.2)
                         } else {
-                            Button(action: saveChanges) {
-                                Text("Save Changes")
+                            Button(action: saveAndContinue) {
+                                Text("Continue")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -97,51 +93,17 @@ struct EditSexualityPreferenceView: View {
                     .padding(.bottom, 32)
                 }
                 .padding()
-                .navigationBarBackButtonHidden(false)
-                .navigationBarItems(leading: 
-                    Button(action: {
-                        selectedTab = "Profile"
-                        dismiss()
-                    }) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                                .foregroundColor(Color("Gold"))
-                            Text("Back")
-                                .foregroundColor(Color("Gold"))
-                        }
-                    }
-                )
+                .navigationBarBackButtonHidden(true)
                 .alert("Error", isPresented: $showError) {
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(errorMessage)
                 }
-                .onAppear {
-                    loadUserPreference()
-                }
             }
         }
     }
     
-    private func loadUserPreference() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        
-        db.collection("users").document(userId).getDocument { document, error in
-            if let error = error {
-                print("Error loading sexuality preference: \(error.localizedDescription)")
-                return
-            }
-            
-            if let document = document,
-               let preference = document.data()?["sexualityPreference"] as? String {
-                DispatchQueue.main.async {
-                    selectedPreference = preference
-                }
-            }
-        }
-    }
-    
-    private func saveChanges() {
+    private func saveAndContinue() {
         guard let preference = selectedPreference else { return }
         guard let userId = Auth.auth().currentUser?.uid else {
             errorMessage = "No authenticated user found"
@@ -151,25 +113,47 @@ struct EditSexualityPreferenceView: View {
         
         isLoading = true
         
-        db.collection("users").document(userId).updateData([
-            "sexualityPreference": preference
-        ]) { error in
+        let userData: [String: Any] = [
+            "sexualityPreference": preference,
+            "setupProgress": SignupProgress.sexualityPreferenceComplete.rawValue
+        ]
+        
+        db.collection("users").document(userId).updateData(userData) { error in
             isLoading = false
             
             if let error = error {
-                errorMessage = "Error saving sexuality preference: \(error.localizedDescription)"
+                errorMessage = "Error saving preference: \(error.localizedDescription)"
                 showError = true
                 return
             }
             
-            selectedTab = "Profile"
-            dismiss()
+            withAnimation {
+                appViewModel.updateProgress(.sexualityPreferenceComplete)
+                currentStep = 6
+            }
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        EditSexualityPreferenceView(isAuthenticated: .constant(true), selectedTab: .constant("Profile"))
+        SexualityPreferenceView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(5)
+        )
+        .environmentObject(AppViewModel())
     }
+    .preferredColorScheme(.light)
+}
+
+// Dark mode preview
+#Preview("Dark Mode") {
+    NavigationStack {
+        SexualityPreferenceView(
+            isAuthenticated: .constant(false),
+            currentStep: .constant(5)
+        )
+        .environmentObject(AppViewModel())
+    }
+    .preferredColorScheme(.dark)
 } 
