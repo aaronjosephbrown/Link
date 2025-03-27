@@ -144,16 +144,21 @@ struct FinishProfileSetupView: View {
                         .padding()
                     } else {
                         // Progress Bar
-                        ProgressView(value: Double(currentSection), total: Double(availableSections.count - 1))
-                            .tint(Color("Gold"))
-                            .padding(.horizontal)
+                        if !availableSections.isEmpty {
+                            ProgressView(value: Double(min(currentSection, availableSections.count - 1)), 
+                                       total: Double(max(1, availableSections.count - 1)))
+                                .tint(Color("Gold"))
+                                .padding(.horizontal)
+                        }
                         
                         // Section Title
-                        Text(availableSections[currentSection].title)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color.accent)
-                            .padding(.top)
+                        if currentSection < availableSections.count {
+                            Text(availableSections[currentSection].title)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(Color.accent)
+                                .padding(.top)
+                        }
                         
                         if isLoading {
                             ProgressView()
@@ -163,17 +168,19 @@ struct FinishProfileSetupView: View {
                             // Section Content
                             ScrollView {
                                 VStack(spacing: 24) {
-                                    switch availableSections[currentSection].section {
-                                    case .appearance:
-                                        appearanceSection
-                                    case .lifestyle:
-                                        fitnessSection
-                                    case .dietary:
-                                        dietarySection
-                                    case .pets:
-                                        petsSection
-                                    case .bioAndOccupation:
-                                        bioAndOccupationSection
+                                    if currentSection < availableSections.count {
+                                        switch availableSections[currentSection].section {
+                                        case .appearance:
+                                            appearanceSection
+                                        case .lifestyle:
+                                            fitnessSection
+                                        case .dietary:
+                                            dietarySection
+                                        case .pets:
+                                            petsSection
+                                        case .bioAndOccupation:
+                                            bioAndOccupationSection
+                                        }
                                     }
                                 }
                                 .padding()
@@ -584,6 +591,7 @@ struct FinishProfileSetupView: View {
                     List(filteredIndustries, id: \.self) { industry in
                         Button(action: {
                             occupation = industry
+                            searchText = "" // Reset search text
                             showOccupationPicker = false
                         }) {
                             HStack {
@@ -600,23 +608,28 @@ struct FinishProfileSetupView: View {
                 }
                 .navigationTitle("Select Industry")
                 .navigationBarItems(trailing: Button("Cancel") {
+                    searchText = "" // Reset search text
                     showOccupationPicker = false
                 })
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .interactiveDismissDisabled()
+            .onDisappear {
+                searchText = "" // Reset search text when sheet is dismissed
+            }
         }
     }
     
     private func saveProfileSetup() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         
+        // Ensure all required fields have valid values
         let profileData: [String: Any] = [
-            "heightPreference": heightPreference,
-            "bodyType": bodyType,
+            "heightPreference": heightPreference.isEmpty ? "No preference" : heightPreference,
+            "bodyType": bodyType.isEmpty ? "Average" : bodyType,
             "heightImportance": heightImportance,
-            "preferredPartnerHeight": preferredPartnerHeight,
+            "preferredPartnerHeight": preferredPartnerHeight.isEmpty ? "No preference" : preferredPartnerHeight,
             "activityLevel": activityLevel,
             "favoriteActivities": Array(favoriteActivities),
             "preferSimilarFitness": preferSimilarFitness,
@@ -652,23 +665,28 @@ struct FinishProfileSetupView: View {
     private func shouldShowSection(_ section: ProfileSetupSection) -> Bool {
         switch section {
         case .appearance:
-            return profileViewModel.incompleteFields.contains { field in
-                ["heightPreference", "bodyType", "preferredPartnerHeight"].contains(field.field)
-            }
+            // Only show if any of these fields are empty or have default values
+            return bodyType.isEmpty || 
+                   heightPreference.isEmpty || 
+                   preferredPartnerHeight.isEmpty ||
+                   bodyType == "Select your body type" ||
+                   heightPreference == "Select your height preference" ||
+                   preferredPartnerHeight == "Select preferred height"
+            
         case .lifestyle:
-            return profileViewModel.incompleteFields.contains { field in
-                ["activityLevel", "favoriteActivities"].contains(field.field)
-            }
+            // Only show if activity level is empty or favorite activities is empty
+            return activityLevel.isEmpty || favoriteActivities.isEmpty
+            
         case .dietary:
-            return profileViewModel.incompleteFields.contains { field in
-                ["diet"].contains(field.field)
-            }
+            // Only show if diet is empty
+            return diet.isEmpty
+            
         case .pets:
-            return profileViewModel.incompleteFields.contains { field in
-                ["hasPets", "petTypes", "animalPreference"].contains(field.field)
-            }
+            // Only show if any of these fields are empty or have default values
+            return animalPreference.isEmpty || (hasPets && petTypes.isEmpty)
+            
         case .bioAndOccupation:
-            // Check if either bio or occupation is empty in Firestore
+            // Only show if either bio or occupation is empty
             return bio.isEmpty || occupation.isEmpty
         }
     }
