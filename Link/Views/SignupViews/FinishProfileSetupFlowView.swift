@@ -20,7 +20,7 @@ struct FinishProfileSetupFlowView: View {
     private var content: some View {
         switch currentStep {
         case 0:
-            EditFitnessActivityView(isProfileSetup: true)
+            EditAppearanceLifestyleView(isProfileSetup: true)
                 .onChange(of: profileViewModel.shouldAdvanceToNextStep) { _, shouldAdvance in
                     if shouldAdvance {
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -30,7 +30,7 @@ struct FinishProfileSetupFlowView: View {
                     }
                 }
         case 1:
-            EditDietaryPreferencesView(isProfileSetup: true)
+            EditFitnessActivityView(isProfileSetup: true)
                 .onChange(of: profileViewModel.shouldAdvanceToNextStep) { _, shouldAdvance in
                     if shouldAdvance {
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -40,6 +40,16 @@ struct FinishProfileSetupFlowView: View {
                     }
                 }
         case 2:
+            EditDietaryPreferencesView(isProfileSetup: true)
+                .onChange(of: profileViewModel.shouldAdvanceToNextStep) { _, shouldAdvance in
+                    if shouldAdvance {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            currentStep += 1
+                        }
+                        profileViewModel.shouldAdvanceToNextStep = false
+                    }
+                }
+        case 3:
             EditPetsAnimalsView(isProfileSetup: true)
                 .onChange(of: profileViewModel.shouldAdvanceToNextStep) { _, shouldAdvance in
                     if shouldAdvance {

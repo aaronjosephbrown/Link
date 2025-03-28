@@ -3,6 +3,37 @@ import FirebaseFirestore
 import FirebaseAuth
 import SwiftUI
 
+// Define the setup progress states
+enum SetupProgress: String, Codable {
+    case notStarted = "notStarted"
+    case basicInfoComplete = "basicInfoComplete"
+    case locationComplete = "locationComplete"
+    case photosComplete = "photosComplete"
+    case bioComplete = "bioComplete"
+    case occupationComplete = "occupationComplete"
+    case appearanceComplete = "appearanceComplete"
+    case fitnessComplete = "fitnessComplete"
+    case dietComplete = "dietComplete"
+    case petsComplete = "petsComplete"
+    case complete = "complete"
+    
+    var nextState: SetupProgress {
+        switch self {
+        case .notStarted: return .basicInfoComplete
+        case .basicInfoComplete: return .locationComplete
+        case .locationComplete: return .photosComplete
+        case .photosComplete: return .bioComplete
+        case .bioComplete: return .occupationComplete
+        case .occupationComplete: return .appearanceComplete
+        case .appearanceComplete: return .fitnessComplete
+        case .fitnessComplete: return .dietComplete
+        case .dietComplete: return .petsComplete
+        case .petsComplete: return .complete
+        case .complete: return .complete
+        }
+    }
+}
+
 class ProfileViewModel: ObservableObject {
     @Published var profileCompletion: Double = 0.0
     @Published var shouldAdvanceToNextStep: Bool = false
@@ -10,6 +41,7 @@ class ProfileViewModel: ObservableObject {
     @Published var totalFields: Int = 0
     @Published var incompleteFields: [IncompleteField] = []
     @Published var profileSetupCompleted: Bool = false
+    @Published var setupProgress: SetupProgress = .notStarted
     private var lastUpdateTime: Date?
     
     // AppStorage for persistent storage
@@ -18,6 +50,7 @@ class ProfileViewModel: ObservableObject {
     @AppStorage("lastProfileUpdate") private var lastProfileUpdate: Double = 0
     @AppStorage("lastProfileChange") private var lastProfileChange: Double = 0
     @AppStorage("incompleteFields") private var storedIncompleteFields: Data = Data()
+    @AppStorage("setupProgress") private var storedSetupProgress: String = SetupProgress.notStarted.rawValue
     
     private let db = Firestore.firestore()
     private var listenerRegistration: ListenerRegistration?
@@ -66,7 +99,12 @@ class ProfileViewModel: ObservableObject {
         ("politicalViews", .string, 1),
         ("drugUse", .string, 1),
         ("usesMarijuana", .boolean, 1),
-        ("usesTobacco", .boolean, 1)
+        ("usesTobacco", .boolean, 1),
+        
+        // Pet-related fields
+        ("hasPets", .boolean, 1),
+        ("dateWithPets", .boolean, 1),
+        ("animalPreference", .string, 1)
     ]
     
     private enum FieldType {
@@ -81,6 +119,7 @@ class ProfileViewModel: ObservableObject {
         // Load stored values on initialization
         self.profileCompletion = storedProfileCompletion
         self.profileSetupCompleted = storedProfileSetupCompleted
+        self.setupProgress = SetupProgress(rawValue: storedSetupProgress) ?? .notStarted
         
         // Decode stored incomplete fields
         if let decodedFields = try? JSONDecoder().decode([IncompleteField].self, from: storedIncompleteFields) {
@@ -121,6 +160,11 @@ class ProfileViewModel: ObservableObject {
         self.incompleteFields = incompleteFields
         self.profileSetupCompleted = completion >= 1.0
         
+        // If profile is complete, update setupProgress
+        if completion >= 1.0 && setupProgress != .complete {
+            updateSetupProgress(.complete)
+        }
+        
         // Store values in AppStorage
         self.storedProfileCompletion = completion
         self.storedProfileSetupCompleted = completion >= 1.0
@@ -131,12 +175,49 @@ class ProfileViewModel: ObservableObject {
             self.storedIncompleteFields = encodedFields
         }
         
-        // Calculate completed and total fields from incomplete fields
-        let totalFields = incompleteFields.reduce(0) { $0 + ($1.required ?? 0) }
-        let completedFields = totalFields - incompleteFields.reduce(0) { $0 + ($1.current ?? 0) }
+        // Calculate completed and total fields
+        let totalFields = self.profileFields.reduce(0) { $0 + $1.required }
+        let completedFields = totalFields - incompleteFields.count
         
         self.completedFields = completedFields
         self.totalFields = totalFields
+    }
+    
+    func updateSetupProgress(_ newProgress: SetupProgress) {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        // Update local state
+        self.setupProgress = newProgress
+        self.storedSetupProgress = newProgress.rawValue
+        
+        // Update Firestore
+        let batch = db.batch()
+        let userRef = db.collection("users").document(userId)
+        
+        // Update both setupProgress and profileSetupCompleted
+        batch.updateData([
+            "setupProgress": newProgress.rawValue,
+            "profileSetupCompleted": newProgress == .complete
+        ], forDocument: userRef)
+        
+        // Commit the batch
+        batch.commit { error in
+            if let error = error {
+                print("Error updating setup progress: \(error.localizedDescription)")
+            } else {
+                // If we've reached complete state, mark profile setup as completed
+                if newProgress == .complete {
+                    DispatchQueue.main.async {
+                        self.profileSetupCompleted = true
+                        self.storedProfileSetupCompleted = true
+                    }
+                }
+            }
+        }
+    }
+    
+    func advanceSetupProgress() {
+        updateSetupProgress(setupProgress.nextState)
     }
     
     func shouldRefreshProfile() -> Bool {
@@ -163,44 +244,42 @@ class ProfileViewModel: ObservableObject {
             
             if let document = document {
                 let data = document.data() ?? [:]
-                var completed = 0
-                var total = 0
+                let incompleteFields = self.calculateIncompleteFields(from: data)
                 
-                for (field, type, required) in self.profileFields {
-                    total += required
-                    
-                    switch type {
-                    case .string:
-                        if let value = data[field] as? String, !value.isEmpty {
-                            completed += required
-                        }
-                    case .array:
-                        if let array = data[field] as? [Any] {
-                            if field == "profilePictures" {
-                                completed += min(array.count, required)
-                            } else if !array.isEmpty {
-                                completed += required
-                            }
-                        }
-                    case .geoPoint:
-                        if data[field] != nil {
-                            completed += required
-                        }
-                    case .boolean:
-                            if data[field] is Bool {
-                            completed += required
-                        }
-                    case .number:
-                            if data[field] is NSNumber {
-                            completed += required
-                        }
-                    }
-                }
+                // Calculate total required fields
+                let total = self.profileFields.reduce(0) { $0 + $1.required }
+                
+                // Calculate completed fields based on incomplete fields
+                let incompleteCount = incompleteFields.reduce(0) { $0 + ($1.required ?? 0) }
+                let completed = total - incompleteCount
                 
                 DispatchQueue.main.async {
                     let completion = Double(completed) / Double(total)
-                    let incompleteFields = self.calculateIncompleteFields(from: data)
-                    self.updateProfileCompletion(completion: completion, incompleteFields: incompleteFields)
+                    
+                    // Print debug information
+                    print("\nCompletion Calculation Debug:")
+                    print("Total required fields: \(total)")
+                    print("Completed required fields: \(completed)")
+                    print("Incomplete fields count: \(incompleteFields.count)")
+                    print("Incomplete fields required sum: \(incompleteCount)")
+                    print("Raw completion percentage: \(completion * 100)%")
+                    
+                    // If all fields are complete, ensure we show 100%
+                    if incompleteFields.isEmpty {
+                        print("All fields complete, setting to 100%")
+                        self.updateProfileCompletion(completion: 1.0, incompleteFields: [])
+                        // If we're not already in complete state, update to complete
+                        if let currentProgress = data["setupProgress"] as? String,
+                           currentProgress != SetupProgress.complete.rawValue {
+                            self.updateSetupProgress(.complete)
+                        }
+                    } else {
+                        print("Incomplete fields found:")
+                        for field in incompleteFields {
+                            print("- \(field.field) (Required: \(field.required ?? 1))")
+                        }
+                        self.updateProfileCompletion(completion: completion, incompleteFields: incompleteFields)
+                    }
                 }
             }
         }

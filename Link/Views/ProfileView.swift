@@ -142,7 +142,7 @@ struct ProfileView: View {
                                     .foregroundColor(Color.accent)
                                     .offset(y: 70)
                             } else {
-                                Text("\(Int(profileViewModel.profileCompletion * 100))%")
+                                Text("\(Int(min(profileViewModel.profileCompletion * 100, 100)))%")
                                     .font(.title3)
                                     .fontWeight(.bold)
                                     .foregroundColor(Color.accent)
@@ -682,12 +682,12 @@ struct ProfileView: View {
                 }
                 .onAppear {
                     loadProfilePicture()
-                    Task {
-                        // Only fetch from API if we need to refresh
-                        if profileViewModel.shouldRefreshProfile() {
-                            await checkProfileCompletion()
-                        }
-                    }
+                    // Use local profile completion calculation
+                    profileViewModel.updateProfileCompletion()
+                }
+                .onChange(of: profileViewModel.profileCompletion) { _, _ in
+                    // Update local state when profile completion changes
+                    profileSetupCompleted = profileViewModel.profileSetupCompleted
                 }
             }
             .fullScreenCover(isPresented: $showEditProfileImagesFullScreen) {
@@ -800,70 +800,6 @@ struct ProfileView: View {
                 profileImageUrl = firstPicture
             }
             isLoadingImage = false
-        }
-    }
-    
-    private func checkProfileCompletion() async {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        
-        // Replace with your actual API endpoint
-        guard let url = URL(string: "https://helloworld-qxqzvcg5za-uc.a.run.app/users/\(userId)") else { return }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Add authorization header if needed
-        if let idToken = try? await Auth.auth().currentUser?.getIDToken() {
-            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
-        }
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            // Log the response for debugging
-            if let httpResponse = response as? HTTPURLResponse {
-                print("HTTP Status Code: \(httpResponse.statusCode)")
-                print("Response Headers: \(httpResponse.allHeaderFields)")
-            }
-            
-            // Try to print the response data as string for debugging
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("Response Data: \(responseString)")
-            }
-            
-            // Only try to decode if we have a successful response
-            if let httpResponse = response as? HTTPURLResponse,
-               (200...299).contains(httpResponse.statusCode) {
-                let response = try JSONDecoder().decode(ProfileCompletionResponse.self, from: data)
-                
-                // Update UI on main thread
-                await MainActor.run {
-                    self.profileViewModel.updateProfileCompletion(
-                        completion: response.profileCompletion,
-                        incompleteFields: response.incompleteFields
-                    )
-                    self.profileSetupCompleted = response.profileCompletion >= 1.0
-                }
-            } else {
-                print("Received non-200 response")
-            }
-        } catch {
-            print("Error fetching profile completion: \(error)")
-            if let decodingError = error as? DecodingError {
-                switch decodingError {
-                case .dataCorrupted(let context):
-                    print("Data corrupted: \(context)")
-                case .keyNotFound(let key, let context):
-                    print("Key not found: \(key), context: \(context)")
-                case .typeMismatch(let type, let context):
-                    print("Type mismatch: \(type), context: \(context)")
-                case .valueNotFound(let type, let context):
-                    print("Value not found: \(type), context: \(context)")
-                @unknown default:
-                    print("Unknown decoding error")
-                }
-            }
         }
     }
 }
