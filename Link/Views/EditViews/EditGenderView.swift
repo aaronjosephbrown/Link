@@ -13,7 +13,7 @@ struct EditGenderView: View {
     @State private var errorMessage = ""
     var isProfileSetup: Bool = false
     
-    private let genders = ["Man", "Woman", "Non-binary", "Other"]
+    private let genders = ["Male", "Female", "Non-binary", "Transgender", "Gender Fluid", "Prefer not to say", "Other"]
     private let db = Firestore.firestore()
     
     var body: some View {
@@ -91,10 +91,11 @@ struct EditGenderView: View {
                                     .padding(.vertical, 16)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .fill(gender.isEmpty ? Color.gray.opacity(0.3) : Color("Gold"))
+                                            .fill(gender != "" ? Color("Gold") : Color.gray.opacity(0.3))
                                     )
+                                    .animation(.easeInOut(duration: 0.2), value: gender != "")
                             }
-                            .disabled(gender.isEmpty)
+                            .disabled(gender == "")
                         }
                     }
                     .padding(.horizontal)
@@ -141,10 +142,10 @@ struct EditGenderView: View {
                 return
             }
             
-            if let document = document,
-               let gender = document.data()?["gender"] as? String {
+            if let document = document {
+                let data = document.data() ?? [:]
                 DispatchQueue.main.async {
-                    self.gender = gender
+                    self.gender = data["gender"] as? String ?? ""
                 }
             }
         }

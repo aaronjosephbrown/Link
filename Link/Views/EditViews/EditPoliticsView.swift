@@ -14,11 +14,12 @@ struct EditPoliticsView: View {
     var isProfileSetup: Bool = false
     
     private let politicalOptions = [
+        "Very Liberal",
         "Liberal",
         "Moderate",
         "Conservative",
+        "Very Conservative",
         "Not Political",
-        "Other",
         "Prefer not to say"
     ]
     private let db = Firestore.firestore()
@@ -26,9 +27,9 @@ struct EditPoliticsView: View {
     var body: some View {
         BackgroundView {
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
+                VStack(spacing: 32) {
                     // Header
-                    VStack(spacing: 8) {
+                    VStack(spacing: 12) {
                         if !isProfileSetup {
                             HStack {
                                 Spacer()
@@ -50,28 +51,36 @@ struct EditPoliticsView: View {
                     .padding(.top, 40)
                     
                     // Politics options
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
                         ForEach(politicalOptions, id: \.self) { option in
                             Button(action: { politicalViews = option }) {
                                 HStack {
-                                    Text(option)
-                                        .font(.custom("Lora-Regular", size: 17))
-                                        .foregroundColor(Color.accent)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(option)
+                                            .font(.custom("Lora-Regular", size: 17))
+                                            .foregroundColor(politicalViews == option ? .white : Color.accent)
+                                    }
+                                    
                                     Spacer()
+                                    
                                     if politicalViews == option {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(Color("Gold"))
-                                            .font(.system(size: 20))
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.white)
                                     }
                                 }
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 16)
+                                .padding()
                                 .frame(maxWidth: .infinity)
                                 .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(politicalViews == option ? Color("Gold") : Color("Gold").opacity(0.1))
+                                )
+                                .overlay(
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(politicalViews == option ? Color("Gold") : Color("Gold").opacity(0.3), lineWidth: 2)
                                 )
                             }
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                     .padding(.horizontal)
@@ -91,16 +100,23 @@ struct EditPoliticsView: View {
                                     saveChanges()
                                 }
                             }) {
-                                Text(isProfileSetup ? "Next" : "Save Changes")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(politicalViews != "" ? Color("Gold") : Color.gray.opacity(0.3))
-                                    )
-                                    .animation(.easeInOut(duration: 0.2), value: politicalViews != "")
+                                HStack {
+                                    Text(isProfileSetup ? "Next" : "Save Changes")
+                                        .font(.system(size: 17, weight: .semibold))
+                                    
+                                    if politicalViews != "" {
+                                        Image(systemName: "arrow.right")
+                                            .font(.system(size: 17, weight: .semibold))
+                                    }
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(politicalViews != "" ? Color("Gold") : Color.gray.opacity(0.3))
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: politicalViews != "")
                             }
                             .disabled(politicalViews == "")
                         }
@@ -150,10 +166,8 @@ struct EditPoliticsView: View {
             
             if let document = document {
                 let data = document.data() ?? [:]
-                if let politics = data["politicalViews"] as? String {
-                    DispatchQueue.main.async {
-                        politicalViews = politics
-                    }
+                DispatchQueue.main.async {
+                    self.politicalViews = data["politicalViews"] as? String ?? ""
                 }
             }
         }
@@ -192,7 +206,12 @@ struct EditPoliticsView: View {
     }
     
     private func saveAndContinue() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+        guard !politicalViews.isEmpty else { return }
+        guard let userId = Auth.auth().currentUser?.uid else {
+            errorMessage = "No authenticated user found"
+            showError = true
+            return
+        }
         
         // Prevent multiple taps while saving
         guard !isLoading else { return }
@@ -206,7 +225,8 @@ struct EditPoliticsView: View {
             if let error = error {
                 DispatchQueue.main.async {
                     self.isLoading = false
-                    print("Error saving political views: \(error.localizedDescription)")
+                    self.errorMessage = "Error saving political views: \(error.localizedDescription)"
+                    self.showError = true
                 }
                 return
             }

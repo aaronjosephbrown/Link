@@ -13,7 +13,12 @@ struct EditFamilyPlansView: View {
     @State private var errorMessage = ""
     var isProfileSetup: Bool = false
     
-    private let familyPlanOptions = ["Want children", "Don't want children", "Open to children", "Not sure yet"]
+    private let familyPlanOptions = [
+        "I want children",
+        "I don't want children",
+        "I might want children",
+        "I have all the children I want"
+    ]
     private let db = Firestore.firestore()
     
     var body: some View {
@@ -32,7 +37,7 @@ struct EditFamilyPlansView: View {
                                 }
                             }
                         }
-                        Image(systemName: "person.2.fill")
+                        Image(systemName: "house.circle.fill")
                             .font(.system(size: 60))
                             .foregroundColor(Color("Gold"))
                             .padding(.bottom, 8)
@@ -143,8 +148,9 @@ struct EditFamilyPlansView: View {
             }
             
             if let document = document {
+                let data = document.data() ?? [:]
                 DispatchQueue.main.async {
-                    familyPlans = document.data()?["familyPlans"] as? String ?? ""
+                    self.familyPlans = data["familyPlans"] as? String ?? ""
                 }
             }
         }
@@ -167,20 +173,26 @@ struct EditFamilyPlansView: View {
             if let error = error {
                 DispatchQueue.main.async {
                     self.isLoading = false
-                    print("Error saving family plans: \(error.localizedDescription)")
+                    self.errorMessage = "Error saving family plans: \(error.localizedDescription)"
+                    self.showError = true
                 }
                 return
             }
             
             DispatchQueue.main.async {
                 self.isLoading = false
+                self.selectedTab = "Profile"
                 self.dismiss()
             }
         }
     }
     
     private func saveAndContinue() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+        guard let userId = Auth.auth().currentUser?.uid else {
+            errorMessage = "No authenticated user found"
+            showError = true
+            return
+        }
         
         // Prevent multiple taps while saving
         guard !isLoading else { return }
@@ -194,7 +206,8 @@ struct EditFamilyPlansView: View {
             if let error = error {
                 DispatchQueue.main.async {
                     self.isLoading = false
-                    print("Error saving family plans: \(error.localizedDescription)")
+                    self.errorMessage = "Error saving family plans: \(error.localizedDescription)"
+                    self.showError = true
                 }
                 return
             }
